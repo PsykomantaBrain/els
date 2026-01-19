@@ -22,8 +22,36 @@
 #define D8 15
 
 
-// device state variables
-static int spindlerpm = 0;
+
+// USER INPUTS -------------------------------
+
+// buttons
+#define BTN0 D7
+#define BTN1 D8
+
+// rotary handwheel pins (RTR0)
+#define RTR0_A D5
+#define RTR0_B D6
+
+volatile uint32_t rot0_Tback;
+volatile uint32_t rot0_Tfwd;
+volatile int rot0_a = 0;
+volatile int rot0_b = 0;
+
+const uint32_t rotaryPulseTime = 20;
+
+
+
+
+// device state variables  -------------------------------
+//
+volatile int spindlerpm = 0;
+volatile int hdwhlCount = 0;
+
+
+
+
+
 
 //initialize the liquid crystal library
 //the first parameter is the I2C address
@@ -31,24 +59,24 @@ static int spindlerpm = 0;
 //the third parameter is how many columns are on your screen
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 byte cc0[8] = {
-	B00100,
-	B00100,
-	B00100,
-	B00100,
-	B00100,
-	B00100,
-	B00100,
-	B00100,
+	B00000,
+	B00000,
+	B00000,
+	B00000,
+	B00000,
+	B00000,
+	B00000,
+	B00000,
 };
 byte cc1[8] = {
-	B00001,
-	B00001,
-	B00001,
-	B00001,    
-	B00001,
-	B00001,
-	B00001,
-	B00001,
+	B00000,
+	B00000,
+	B00000,
+	B00000,    
+	B00000,
+	B00000,
+	B00000,
+	B00000,
 };
 byte cc2[8] = {
 	B10000,    
@@ -61,25 +89,59 @@ byte cc2[8] = {
 	B10000,
 };
 byte cc3[8] = {
-	B00011,
-	B00011,
-	B00011,
-	B00011,
-	B00011,
-	B00011,    
-	B00011,
-	B00011,    
+	B00001,
+	B00001,
+	B00001,
+	B00001,
+	B00001,
+	B00001,    
+	B00001,
+	B00001,    
 };
 byte cc4[8] = {
-	B11000,
-	B11000,
-	B11000,
-	B11000,
-	B11000,
-	B11000,
-	B11000,
-	B11000,
+	B10001,
+	B10001,
+	B10001,
+	B10001,
+	B10001,
+	B10001,
+	B10001,
+	B10001,
 };
+
+
+
+struct PageValueRegion
+{
+
+private:
+	char buffer[16];
+
+public:
+	uint8_t length;
+
+	volatile int* linkedValue = nullptr;
+
+	PageValueRegion(uint8_t l, volatile int* val)
+	{
+		length = l;
+		linkedValue = val;
+	}
+
+
+	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+	{
+		lcd.setCursor(col, row);
+		// draw value with leading zeros to fill length
+
+		snprintf(buffer, sizeof(buffer), "%0*d", length, *linkedValue);
+		lcd.print(buffer);
+	}
+};
+PageValueRegion pvHdWhl = PageValueRegion(4, &hdwhlCount);
+PageValueRegion pvRPM = PageValueRegion(4, &spindlerpm);
+
+
 
 
 struct Page
@@ -90,74 +152,28 @@ struct Page
 
 	virtual void drawLoop() = 0;
 
-};
+	virtual void handleInputs(uint8_t btns)	{ }
 
-// ptr for current active page
+};
 Page* currentPage = nullptr;
 
 
-// suppress intellisense error E0513: 
-#pragma warning(disable:0513)
+// fwd declare page switch
+void goToPage(int);
 
-void setPage(Page* p)
-{
-#ifndef __INTELLISENSE__	
-	currentPage = p; // intellisense keeps complaining about this line, but it compiles and works fine, so suppress the warning
-#endif
-
-	currentPage->drawOnce();
-}
-
-struct PageValueRegion
-{
-
-private:
-	char buffer[16];
-
-public:
-	uint8_t col;
-	uint8_t row;
-	uint8_t length;
-
-
-	PageValueRegion(uint8_t c, uint8_t r, uint8_t l)
-	{
-		col = c;
-		row = r;
-		length = l;	
-	}
-
-	void draw(LiquidCrystal_I2C& lcd, int value)
-	{
-		lcd.setCursor(col, row);
-		// draw value with leading zeros to fill length
-		
-		snprintf(buffer, sizeof(buffer), "%0*d", length, value);
-		lcd.print(buffer);
-	}
-
-	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row, int value)
-	{
-		lcd.setCursor(col, row);
-		// draw value with leading zeros to fill length
-
-		snprintf(buffer, sizeof(buffer), "%0*d", length, value);
-		lcd.print(buffer);
-	}
-};
 
 
 struct MainPage : Page
 {
-	PageValueRegion pvRPM = PageValueRegion(5, 0, 4);
-
+	int pageDst = 0; // destination page for navigation (TMP, just for testing while there are only 2 buttons)
 
 	void drawOnce() override
 	{
 		lcd.clear();
 		lcd.setCursor(0, 0);
 		lcd.print(" RPM ");
-		pvRPM.draw(lcd, 0);
+		
+
 		lcd.setCursor(0, 3);
 		lcd.print(" SET  THR  SPD  JOG ");
 	}
@@ -165,7 +181,21 @@ struct MainPage : Page
 	void drawLoop() override
 	{
 		// show RPM value in its region
-		pvRPM.draw(lcd, spindlerpm);
+		pvRPM.drawAt(lcd, 0,1);
+	}
+	void handleInputs(uint8_t btns) override
+	{
+		// handle inputs for main page if needed
+		if (btns & 0x01)
+		{
+			// BTN0 pressed
+			pageDst = (pageDst + 1) % 4;		
+		}
+		if (btns & 0x02)
+		{
+			// BTN1 pressed
+			goToPage(pageDst);
+		}
 	}
 };
 MainPage mainPage;
@@ -177,13 +207,20 @@ struct CfgPage : Page
 	{
 		lcd.clear();
 		lcd.setCursor(0, 2);
-		lcd.print("      000  000      ");
+		lcd.print("           000      ");
 		lcd.setCursor(0, 3);
-		lcd.print("\x01SET\x02 CAL  LDS  MSR ");
+		lcd.print("\x03SET\x02 HWL  LDS  MSR ");
 	}
 	void drawLoop() override
 	{
-		// nothing to update for now
+		pvHdWhl.drawAt(lcd, 6, 2);
+		pvRPM.drawAt(lcd, 0, 3);
+	}
+	void handleInputs(uint8_t btns) override
+	{
+		// handle inputs for main page if needed
+		if (btns & 0x01)
+			goToPage(0);
 	}
 };
 CfgPage cfgPage;
@@ -203,14 +240,69 @@ struct ThreadingPage : Page
 
 
 		lcd.setCursor(0, 3);
-		lcd.print("\x01THR\x02 PDT  END  JOG ");
+		lcd.print("\x03THR\x02 PDT  END  JOG ");
 	}
 	void drawLoop() override
 	{
-		mainPage.pvRPM.drawAt(lcd, 0, 3, spindlerpm);
+		pvHdWhl.drawAt(lcd, 0, 3);
+	}
+	void handleInputs(uint8_t btns) override
+	{
+		// handle inputs for main page if needed
+		if (btns & 0x01)
+			goToPage(0);
 	}
 };
 ThreadingPage threadingPage;
+
+
+struct SpdPage : Page
+{
+
+	void drawOnce() override
+	{
+		// thrd page
+		lcd.clear();
+
+		lcd.print(" RPM          ");
+		lcd.setCursor(0, 1);
+		
+		lcd.setCursor(0, 2);
+		lcd.print("      000          ");
+
+		lcd.setCursor(0, 3);
+		lcd.print("\x03SPD\x02 FRT      JOG ");
+	}
+	void drawLoop() override
+	{
+		pvHdWhl.drawAt(lcd, 7, 2);
+		pvRPM.drawAt(lcd, 0, 1);
+	}
+	void handleInputs(uint8_t btns) override
+	{
+		// handle inputs for main page if needed
+		if (btns & 0x01)
+			goToPage(0);
+	}
+};
+SpdPage spdPage;
+
+
+
+
+void setPage(Page* p)
+{
+#ifndef __INTELLISENSE__	
+	currentPage = p; // intellisense keeps complaining about this line, but it compiles and works fine, so suppress the warning
+#endif
+
+	currentPage->drawOnce();
+}
+
+
+
+
+
 
 
 
@@ -221,8 +313,9 @@ void setup()
 	// init usb serial for controlling
 	Serial.begin(115200);
 	
-	// set up 4x20 LCD display via SPI on the default pins
 
+
+	// set up 4x20 LCD display via SPI on the default pins
 	Wire.begin(I2C_SDA, I2C_SCL);
 	lcd.init();
 	
@@ -245,14 +338,25 @@ void setup()
 	lcd.print("  \x08\x08\x03\x03\x01\x04\x02\x03\x03\x08\x08  ");
 
 
-	delay(2000);
-	//setPage(0);
+	delay(1500);
 
-	Serial.println("ready");
+	// buttons
+	pinMode(BTN0, INPUT_PULLUP);
+	pinMode(BTN1, INPUT_PULLUP);
 
+	// rotary inputs 
+	pinMode(RTR0_A, INPUT_PULLUP);
+	pinMode(RTR0_B, INPUT_PULLUP);
+
+	rot0_Tback = 0;
+	rot0_Tfwd = 0;
+	attachInterrupt(digitalPinToInterrupt(RTR0_A), interrupt_ROT0, RISING);
+
+
+	delay(500);
 	setPage(&mainPage);
 
-	currentPage->drawOnce();
+	Serial.println("ready");
 }
 
 // the loop function runs over and over again until power down or reset
@@ -264,8 +368,16 @@ void loop()
 
 	// update fake RPM value
 	spindlerpm = (spindlerpm + 3) % 10000; // dummy update
-
 	currentPage->drawLoop();
+
+	// handle input
+	// grab button states here and pass
+
+	uint8_t stBtns = 0;
+	if (digitalRead(BTN0) == LOW) stBtns |= 0x01;
+	if (digitalRead(BTN1) == LOW) stBtns |= 0x02;
+
+	currentPage->handleInputs(stBtns);
 	
 }
 
@@ -325,27 +437,10 @@ void handleSerial()
 		if (input.startsWith("/pag"))
 		{
 			int newPage = input.substring(5).toInt();
-
-			switch (newPage)
-			{
-			default:
-			case 0:
-				setPage(&mainPage);
-				break;
-			case 1:
-				setPage(&cfgPage);
-				break;
-			case 2:
-				setPage(&threadingPage);
-				break;
-
-			}
-			Serial.print("Page set to ");
-			Serial.println(newPage);
+			goToPage(newPage);			
 		}
 	}
 }
-
 String parseChars(String inStr)
 {
 	String outStr = "";
@@ -374,3 +469,78 @@ String parseChars(String inStr)
 
 
 
+
+void goToPage(int iPage)
+{
+	switch (iPage)
+	{
+	default:
+	case 0:
+		setPage(&mainPage);
+		break;
+	case 1:
+		setPage(&cfgPage);
+		break;
+	case 2:
+		setPage(&threadingPage);
+		break;
+	case 3:
+		setPage(&spdPage);
+		break;
+
+	}
+	Serial.print("Page set to ");
+	Serial.println(iPage);
+}
+
+
+
+void IRAM_ATTR interrupt_ROT0()
+{
+	//encoderRead(RTR0_A, RTR0_B, &rot0_a, &rot0_b, &rot0_Tfwd, &rot0_Tback);
+
+	// SAP impl, this interrupts on A rising edge, so state of B determines direction
+	uint32_t mils = millis();	
+	if (digitalRead(RTR0_B))
+	{
+		hdwhlCount++;
+	}
+	else
+	{
+		hdwhlCount--;		
+	}
+}
+
+void encoderRead(int pinA, int pinB, volatile int* a0, volatile int* b0, volatile uint32_t* rot_Tfwd, volatile uint32_t* rot_Tback)
+{
+	uint32_t mils = millis();
+
+	int a = digitalRead(pinA);
+	int b = digitalRead(pinB);
+
+	if (a != *a0)
+	{
+		*a0 = a;
+		if (b != *b0)
+		{
+			*b0 = b;
+
+			if (a == b)
+			{
+				if (rot0_Tback + rotaryPulseTime < mils)
+				{
+					*rot_Tfwd = mils;
+					hdwhlCount++;
+				}
+			}
+			else
+			{
+				if (rot0_Tfwd + rotaryPulseTime < mils)
+				{
+					*rot_Tback = mils;
+					hdwhlCount--;
+				}
+			}
+		}
+	}
+}
