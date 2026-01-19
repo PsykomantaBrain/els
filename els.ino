@@ -9,7 +9,6 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-#define D0 16
 
 #define I2C_SCL 5
 #define I2C_SDA 4
@@ -19,7 +18,8 @@
 #define D5 14
 #define D6 12
 #define D7 13
-#define D8 15
+#define SDD2 9 // not sure about this one
+#define SDD3 10
 
 
 
@@ -27,7 +27,7 @@
 
 // buttons
 #define BTN0 D7
-#define BTN1 D8
+#define BTN1 SDD3
 
 // rotary handwheel pins (RTR0)
 #define RTR0_A D5
@@ -175,7 +175,26 @@ struct MainPage : Page
 		
 
 		lcd.setCursor(0, 3);
-		lcd.print(" SET  THR  SPD  JOG ");
+
+		switch (pageDst)
+		{
+			default:
+			case 0:
+				lcd.print(" CFG  THR  SPD  JOG ");
+				break;
+			case 1:
+				lcd.print("\003CFG\002 THR  SPD  JOG ");
+				break;
+			case 2:
+				lcd.print(" CFG \003THR\002 SPD  JOG ");
+				break;
+			case 3:
+				lcd.print(" CFG  THR \003SPD\002 JOG ");
+				break;
+			case 4:
+				lcd.print(" CFG  THR  SPD \003JOG\002");
+			break;
+		}
 	}
 
 	void drawLoop() override
@@ -189,12 +208,14 @@ struct MainPage : Page
 		if (btns & 0x01)
 		{
 			// BTN0 pressed
-			pageDst = (pageDst + 1) % 4;		
+			pageDst = (pageDst + 1) % 4;	
+			drawOnce();
 		}
 		if (btns & 0x02)
 		{
-			// BTN1 pressed
+			// BTN1 pressed			
 			goToPage(pageDst);
+
 		}
 	}
 };
@@ -209,7 +230,7 @@ struct CfgPage : Page
 		lcd.setCursor(0, 2);
 		lcd.print("           000      ");
 		lcd.setCursor(0, 3);
-		lcd.print("\x03SET\x02 HWL  LDS  MSR ");
+		lcd.print("\003SET\002 HWL  LDS  MSR ");
 	}
 	void drawLoop() override
 	{
@@ -240,7 +261,7 @@ struct ThreadingPage : Page
 
 
 		lcd.setCursor(0, 3);
-		lcd.print("\x03THR\x02 PDT  END  JOG ");
+		lcd.print("\003THR\002 PDT  END  JOG ");
 	}
 	void drawLoop() override
 	{
@@ -271,7 +292,7 @@ struct SpdPage : Page
 		lcd.print("      000          ");
 
 		lcd.setCursor(0, 3);
-		lcd.print("\x03SPD\x02 FRT      JOG ");
+		lcd.print("\003SPD\002 FRT      JOG ");
 	}
 	void drawLoop() override
 	{
@@ -335,7 +356,7 @@ void setup()
 	lcd.setCursor(0, 1);
 	lcd.print(" HRV ELS ");
 	lcd.setCursor(0, 2);
-	lcd.print("  \x08\x08\x03\x03\x01\x04\x02\x03\x03\x08\x08  ");
+	lcd.print("  \010\010\003\003\001\004\002\003\003\010\010  ");
 
 
 	delay(1500);
@@ -378,6 +399,10 @@ void loop()
 	if (digitalRead(BTN1) == LOW) stBtns |= 0x02;
 
 	currentPage->handleInputs(stBtns);
+
+	if (stBtns != 0)
+		delay(150); // simple debounce
+
 	
 }
 
