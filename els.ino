@@ -4,11 +4,12 @@
  Author:	HarvesteR
 */
 #pragma once
-
-// the setup function runs once when you press reset or power the board
+#include <AccelStepper.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+
+#define sign(x) ((x) > 0 ? 1 : ((x) < 0 ? -1 : 0))
 
 #define I2C_SCL 5
 #define I2C_SDA 4
@@ -21,7 +22,8 @@
 #define SDD2 9 // not sure about this one
 #define SDD3 10
 
-
+#define MOTOR_PIN_DIR D3
+#define MOTOR_PIN_STEP D4
 
 // USER INPUTS -------------------------------
 
@@ -45,11 +47,14 @@ const uint32_t rotaryPulseTime = 20;
 
 // device state variables  -------------------------------
 //
+
+int motorStepsPerRev = 400; // steps per revolution for the stepper motor
+
 volatile int spindlerpm = 0;
 volatile int hdwhlCount = 0;
 
 
-
+AccelStepper motor(AccelStepper::DRIVER, MOTOR_PIN_STEP, MOTOR_PIN_DIR);
 
 
 
@@ -148,11 +153,16 @@ struct Page
 {
 	virtual ~Page() {}       
 
+	virtual void enterPage() {}
+
+
 	virtual void drawOnce() = 0;
 
 	virtual void drawLoop() = 0;
 
 	virtual void handleInputs(uint8_t btns)	{ }
+
+	virtual void exitPage() {}
 
 };
 Page* currentPage = nullptr;
@@ -280,30 +290,76 @@ ThreadingPage threadingPage;
 struct SpdPage : Page
 {
 
+	int motorSpeed = 0;
+	int hdWhl0;
+
+	PageValueRegion pvTgtSpeed = PageValueRegion(4, &motorSpeed);
+
+	void enterPage() override
+	{
+		hdWhl0 = hdwhlCount;
+		motorSpeed = 0;
+
+		motor.stop();
+		motor.setAcceleration(50);
+
+	}
 	void drawOnce() override
 	{
 		// thrd page
 		lcd.clear();
+		// l0
+		lcd.print("RPM");
+		// l1
+		pvRPM.drawAt(lcd, 0, 1);
+		// l2
 
-		lcd.print(" RPM          ");
-		lcd.setCursor(0, 1);
-		
-		lcd.setCursor(0, 2);
-		lcd.print("      000          ");
-
+		// l3
 		lcd.setCursor(0, 3);
-		lcd.print("\003SPD\002 FRT      JOG ");
+		lcd.print("\003SPD\002 FRT  ZRO  JOG ");
 	}
 	void drawLoop() override
 	{
-		pvHdWhl.drawAt(lcd, 7, 2);
 		pvRPM.drawAt(lcd, 0, 1);
+		pvTgtSpeed.drawAt(lcd, 6, 2);
 	}
 	void handleInputs(uint8_t btns) override
 	{
 		// handle inputs for main page if needed
 		if (btns & 0x01)
+		{
 			goToPage(0);
+			return;
+		}
+
+		if (btns & 0x02)
+		{
+			motorSpeed = 0;
+			hdWhl0 = hdwhlCount;
+		}
+		else
+		{
+			int newspd = hdwhlCount - hdWhl0;
+
+			if (motorSpeed != newspd)
+			{
+				if (newspd == 0)
+					motor.stop();
+				else								
+					motor.setSpeed(newspd);
+			
+				motorSpeed = newspd;
+			}
+		}
+
+		if (motorSpeed != 0)
+			motor.runSpeed();
+
+	}
+	void exitPage() override
+	{
+		motor.stop();
+		motorSpeed = 0;
 	}
 };
 SpdPage spdPage;
@@ -313,10 +369,14 @@ SpdPage spdPage;
 
 void setPage(Page* p)
 {
+	if (currentPage != nullptr)
+		currentPage->exitPage();
+
 #ifndef __INTELLISENSE__	
 	currentPage = p; // intellisense keeps complaining about this line, but it compiles and works fine, so suppress the warning
 #endif
 
+	currentPage->enterPage();
 	currentPage->drawOnce();
 }
 
@@ -334,7 +394,11 @@ void setup()
 	// init usb serial for controlling
 	Serial.begin(115200);
 	
-
+	motor.setMinPulseWidth(60); // set step pulse width to 600us
+	motor.setPinsInverted(false, true, false);
+	motor.setMaxSpeed(4000); // set max speed
+	motor.setAcceleration(100); // set acceleration
+	motor.stop();
 
 	// set up 4x20 LCD display via SPI on the default pins
 	Wire.begin(I2C_SDA, I2C_SCL);
@@ -354,9 +418,9 @@ void setup()
 	
 	
 	lcd.setCursor(0, 1);
-	lcd.print(" HRV ELS ");
+	lcd.print(" HRVToolworks ELS");
 	lcd.setCursor(0, 2);
-	lcd.print("  \010\010\003\003\001\004\002\003\003\010\010  ");
+	lcd.print("  \000\001\002\003\004\005");
 
 
 	delay(1500);
@@ -387,6 +451,7 @@ void loop()
 	handleSerial();
 	
 
+
 	// update fake RPM value
 	spindlerpm = (spindlerpm + 3) % 10000; // dummy update
 	currentPage->drawLoop();
@@ -403,7 +468,7 @@ void loop()
 	if (stBtns != 0)
 		delay(150); // simple debounce
 
-	
+		
 }
 
 
