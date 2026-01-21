@@ -33,6 +33,15 @@
 #define RTR0_A 18
 #define RTR0_B 19
 
+
+// LCD layout consts -------------------------------
+#define C_FIELD0 0 //1234
+#define C_FIELD1 5 //6789
+#define C_FIELD2 10//1234
+#define C_FIELD3 15//6789
+
+
+
 volatile uint32_t rot0_Tback;
 volatile uint32_t rot0_Tfwd;
 volatile int rot0_a = 0;
@@ -144,6 +153,9 @@ public:
 PageValueRegion pvHdWhl = PageValueRegion(4, &hdwhlCount);
 PageValueRegion pvRPM = PageValueRegion(4, &spindlerpm);
 
+PageValueRegion pvMoV = PageValueRegion(4, &motorStepsPerRev);
+
+
 
 
 
@@ -208,7 +220,8 @@ struct MainPage : Page
 	void drawLoop() override
 	{
 		// show RPM value in its region
-		pvRPM.drawAt(lcd, 0,1);
+		pvRPM.drawAt(lcd, C_FIELD0, 1);
+
 	}
 	void handleInputs(uint8_t btns) override
 	{
@@ -235,15 +248,17 @@ struct CfgPage : Page
 	void drawOnce() override
 	{
 		lcd.clear();
+		lcd.print(" RPM ");
 		lcd.setCursor(0, 2);
-		lcd.print("           000      ");
+		
 		lcd.setCursor(0, 3);
-		lcd.print("\003SET\002 HWL  LDS  MSR ");
+		lcd.print("\003SET\002 MoV  SpV  HdW ");
 	}
 	void drawLoop() override
 	{
-		pvHdWhl.drawAt(lcd, 6, 2);
-		pvRPM.drawAt(lcd, 0, 3);
+		pvRPM.drawAt(lcd, C_FIELD0, 3);
+		pvMoV.drawAt(lcd, C_FIELD1, 2);
+		pvHdWhl.drawAt(lcd, C_FIELD3, 2);
 	}
 	void handleInputs(uint8_t btns) override
 	{
@@ -273,7 +288,7 @@ struct ThreadingPage : Page
 	}
 	void drawLoop() override
 	{
-		pvHdWhl.drawAt(lcd, 0, 3);
+		pvHdWhl.drawAt(lcd, C_FIELD0, 3);
 	}
 	void handleInputs(uint8_t btns) override
 	{
@@ -309,7 +324,7 @@ struct SpdPage : Page
 		// l0
 		lcd.print("RPM");
 		// l1
-		pvRPM.drawAt(lcd, 0, 1);
+		pvRPM.drawAt(lcd, C_FIELD0, 1);
 		// l2
 
 		// l3
@@ -318,8 +333,8 @@ struct SpdPage : Page
 	}
 	void drawLoop() override
 	{
-		pvRPM.drawAt(lcd, 0, 1);
-		pvTgtSpeed.drawAt(lcd, 6, 2);
+		pvRPM.drawAt(lcd, C_FIELD0, 1);
+		pvTgtSpeed.drawAt(lcd, C_FIELD1, 2);
 	}
 	void handleInputs(uint8_t btns) override
 	{
