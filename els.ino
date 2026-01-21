@@ -8,32 +8,30 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+#include <Arduino.h>
+
 
 #define sign(x) ((x) > 0 ? 1 : ((x) < 0 ? -1 : 0))
 
-#define I2C_SCL 5
-#define I2C_SDA 4
+#define I2C_SCL SCL
+#define I2C_SDA SDA
 
-#define D3 0
-#define D4 2
-#define D5 14
-#define D6 12
-#define D7 13
-#define SDD2 9 // not sure about this one
-#define SDD3 10
 
-#define MOTOR_PIN_DIR D3
-#define MOTOR_PIN_STEP D4
+#define MOTOR_PIN_DIR 2
+#define MOTOR_PIN_STEP 4
 
 // USER INPUTS -------------------------------
 
 // buttons
-#define BTN0 D7
-#define BTN1 SDD3
+#define BTN0 32 // zeroing button
+#define BTN1 27 // SK 1
+#define BTN2 26 // SK 2
+#define BTN3 25 // SK 3
+#define BTN4 33 // SK 4
 
 // rotary handwheel pins (RTR0)
-#define RTR0_A D5
-#define RTR0_B D6
+#define RTR0_A 18
+#define RTR0_B 19
 
 volatile uint32_t rot0_Tback;
 volatile uint32_t rot0_Tfwd;
@@ -393,7 +391,9 @@ void setup()
 {
 	// init usb serial for controlling
 	Serial.begin(115200);
-	
+
+	pinMode(MOTOR_PIN_DIR,  OUTPUT);
+	pinMode(MOTOR_PIN_STEP, OUTPUT);
 	motor.setMinPulseWidth(60); // set step pulse width to 600us
 	motor.setPinsInverted(false, true, false);
 	motor.setMaxSpeed(4000); // set max speed
@@ -401,6 +401,8 @@ void setup()
 	motor.stop();
 
 	// set up 4x20 LCD display via SPI on the default pins
+	pinMode(I2C_SDA, OUTPUT);
+	pinMode(I2C_SCL, OUTPUT);
 	Wire.begin(I2C_SDA, I2C_SCL);
 	lcd.init();
 	
@@ -428,6 +430,10 @@ void setup()
 	// buttons
 	pinMode(BTN0, INPUT_PULLUP);
 	pinMode(BTN1, INPUT_PULLUP);
+	pinMode(BTN2, INPUT_PULLUP);
+	pinMode(BTN3, INPUT_PULLUP);
+	pinMode(BTN4, INPUT_PULLUP);
+
 
 	// rotary inputs 
 	pinMode(RTR0_A, INPUT_PULLUP);
@@ -460,8 +466,12 @@ void loop()
 	// grab button states here and pass
 
 	uint8_t stBtns = 0;
-	if (digitalRead(BTN0) == LOW) stBtns |= 0x01;
-	if (digitalRead(BTN1) == LOW) stBtns |= 0x02;
+	if (digitalRead(BTN0) == LOW) stBtns |= 0x10; // zero button
+
+	if (digitalRead(BTN1) == LOW) stBtns |= 0x01; // SK1	
+	if (digitalRead(BTN2) == LOW) stBtns |= 0x02; // SK2
+	if (digitalRead(BTN3) == LOW) stBtns |= 0x04; // SK3
+	if (digitalRead(BTN4) == LOW) stBtns |= 0x08; // SK4
 
 	currentPage->handleInputs(stBtns);
 
