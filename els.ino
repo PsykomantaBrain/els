@@ -19,6 +19,9 @@
 
 #define MOTOR_PIN_DIR 2
 #define MOTOR_PIN_STEP 4
+// spindle encoder pins
+#define SPNDL_ROT_A 35
+#define SPNDL_ROT_B 34
 
 // USER INPUTS -------------------------------
 
@@ -57,7 +60,7 @@ const uint32_t rotaryPulseTime = 20;
 
 int motorStepsPerRev = 400; // steps per revolution for the stepper motor
 
-volatile int spindlerpm = 0;
+volatile int spndlCount = 0;
 volatile int hdwhlCount = 0;
 
 
@@ -151,7 +154,7 @@ public:
 	}
 };
 PageValueRegion pvHdWhl = PageValueRegion(4, &hdwhlCount);
-PageValueRegion pvRPM = PageValueRegion(4, &spindlerpm);
+PageValueRegion pvSpndl = PageValueRegion(5, &spndlCount);
 
 PageValueRegion pvMoV = PageValueRegion(4, &motorStepsPerRev);
 
@@ -191,7 +194,7 @@ struct MainPage : Page
 	{
 		lcd.clear();
 		lcd.setCursor(0, 0);
-		lcd.print(" RPM ");
+		lcd.print("SPNDL ");
 		
 
 		lcd.setCursor(0, 3);
@@ -220,7 +223,7 @@ struct MainPage : Page
 	void drawLoop() override
 	{
 		// show RPM value in its region
-		pvRPM.drawAt(lcd, C_FIELD0, 1);
+		pvSpndl.drawAt(lcd, C_FIELD0, 1);
 
 	}
 	void handleInputs(uint8_t btns) override
@@ -248,7 +251,7 @@ struct CfgPage : Page
 	void drawOnce() override
 	{
 		lcd.clear();
-		lcd.print(" RPM ");
+		lcd.print("SPNDL ");
 		lcd.setCursor(0, 2);
 		
 		lcd.setCursor(0, 3);
@@ -256,7 +259,7 @@ struct CfgPage : Page
 	}
 	void drawLoop() override
 	{
-		pvRPM.drawAt(lcd, C_FIELD0, 3);
+		pvSpndl.drawAt(lcd, C_FIELD0, 3);
 		pvMoV.drawAt(lcd, C_FIELD1, 2);
 		pvHdWhl.drawAt(lcd, C_FIELD3, 2);
 	}
@@ -322,9 +325,9 @@ struct SpdPage : Page
 		// thrd page
 		lcd.clear();
 		// l0
-		lcd.print("RPM");
+		lcd.print("SPNDL");
 		// l1
-		pvRPM.drawAt(lcd, C_FIELD0, 1);
+		pvSpndl.drawAt(lcd, C_FIELD0, 1);
 		// l2
 
 		// l3
@@ -333,7 +336,7 @@ struct SpdPage : Page
 	}
 	void drawLoop() override
 	{
-		pvRPM.drawAt(lcd, C_FIELD0, 1);
+		pvSpndl.drawAt(lcd, C_FIELD0, 1);
 		pvTgtSpeed.drawAt(lcd, C_FIELD1, 2);
 	}
 	void handleInputs(uint8_t btns) override
@@ -415,6 +418,14 @@ void setup()
 	motor.setAcceleration(100); // set acceleration
 	motor.stop();
 
+	// just for now, read spindle encoder with interrupts.
+	// later the idea is to use PCNT hardware peripheral for this
+	pinMode(SPNDL_ROT_A, INPUT_PULLUP);
+	pinMode(SPNDL_ROT_B, INPUT_PULLUP);
+	attachInterrupt(digitalPinToInterrupt(SPNDL_ROT_A), interrupt_SPNDL, RISING);
+
+
+
 	// set up 4x20 LCD display via SPI on the default pins
 	pinMode(I2C_SDA, OUTPUT);
 	pinMode(I2C_SCL, OUTPUT);
@@ -454,6 +465,7 @@ void setup()
 	pinMode(RTR0_A, INPUT_PULLUP);
 	pinMode(RTR0_B, INPUT_PULLUP);
 
+
 	rot0_Tback = 0;
 	rot0_Tfwd = 0;
 	attachInterrupt(digitalPinToInterrupt(RTR0_A), interrupt_ROT0, RISING);
@@ -472,9 +484,7 @@ void loop()
 	handleSerial();
 	
 
-
-	// update fake RPM value
-	spindlerpm = (spindlerpm + 3) % 10000; // dummy update
+	
 	currentPage->drawLoop();
 
 	// handle input
@@ -611,11 +621,8 @@ void goToPage(int iPage)
 
 
 void IRAM_ATTR interrupt_ROT0()
-{
-	//encoderRead(RTR0_A, RTR0_B, &rot0_a, &rot0_b, &rot0_Tfwd, &rot0_Tback);
-
-	// SAP impl, this interrupts on A rising edge, so state of B determines direction
-	uint32_t mils = millis();	
+{	
+	// SAP impl, this interrupts on A rising edge, so state of B determines direction	
 	if (digitalRead(RTR0_B))
 	{
 		hdwhlCount++;
@@ -626,36 +633,16 @@ void IRAM_ATTR interrupt_ROT0()
 	}
 }
 
-void encoderRead(int pinA, int pinB, volatile int* a0, volatile int* b0, volatile uint32_t* rot_Tfwd, volatile uint32_t* rot_Tback)
+
+void IRAM_ATTR interrupt_SPNDL()
 {
-	uint32_t mils = millis();
-
-	int a = digitalRead(pinA);
-	int b = digitalRead(pinB);
-
-	if (a != *a0)
+	// SAP impl, this interrupts on A rising edge, so state of B determines direction	
+	if (digitalRead(SPNDL_ROT_B))
 	{
-		*a0 = a;
-		if (b != *b0)
-		{
-			*b0 = b;
-
-			if (a == b)
-			{
-				if (rot0_Tback + rotaryPulseTime < mils)
-				{
-					*rot_Tfwd = mils;
-					hdwhlCount++;
-				}
-			}
-			else
-			{
-				if (rot0_Tfwd + rotaryPulseTime < mils)
-				{
-					*rot_Tback = mils;
-					hdwhlCount--;
-				}
-			}
-		}
+		spndlCount++;
+	}
+	else
+	{
+		spndlCount--;
 	}
 }
