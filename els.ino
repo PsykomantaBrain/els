@@ -26,7 +26,12 @@
 // USER INPUTS -------------------------------
 
 // buttons
-#define BTN0 32 // zeroing button
+#define BTNZRO 32 // zeroing button
+
+#define BTNEXE 14 // exec button
+#define LEDEXE 12 // exec led
+
+
 #define BTN1 27 // SK 1
 #define BTN2 26 // SK 2
 #define BTN3 25 // SK 3
@@ -124,8 +129,6 @@ byte cc4[8] = {
 	B10001,
 };
 
-
-
 struct PageValueRegion
 {
 
@@ -154,13 +157,8 @@ public:
 	}
 };
 PageValueRegion pvHdWhl = PageValueRegion(4, &hdwhlCount);
-PageValueRegion pvSpndl = PageValueRegion(5, &spndlCount);
-
+PageValueRegion pvSpndl = PageValueRegion(4, &spndlCount);
 PageValueRegion pvMoV = PageValueRegion(4, &motorStepsPerRev);
-
-
-
-
 
 struct Page
 {
@@ -181,14 +179,53 @@ struct Page
 Page* currentPage = nullptr;
 
 
-// fwd declare page switch
+// fwd declares
 void goToPage(int);
 
 
+bool execArmed;
+void armExec()
+{
+	digitalWrite(LEDEXE, HIGH);
+	execArmed = true;
+	Serial.println("Exec armed");
+}
+void disarmExec()
+{
+	digitalWrite(LEDEXE, LOW);
+	execArmed = false;
+	Serial.println("Exec disarmed");
+}
+bool handleExec()
+{
+	if (execArmed && digitalRead(BTNEXE) == LOW)
+	{
+		digitalWrite(LEDEXE, LOW);
+		execArmed = false;
+
+		Serial.println("Exec triggered");
+		return true;
+	}
+	return false;
+}
+
+
+
+
+String LabelAct(String label, bool act)
+{
+	return act ? ("\003"+label+"\002") : (" "+label+" ");
+}
 
 struct MainPage : Page
 {
 	int pageDst = 0; // destination page for navigation (TMP, just for testing while there are only 2 buttons)
+
+	void enterPage() override
+	{
+		// returning to main page always disarms.
+		disarmExec();
+	}
 
 	void drawOnce() override
 	{
@@ -199,25 +236,7 @@ struct MainPage : Page
 
 		lcd.setCursor(0, 3);
 
-		switch (pageDst)
-		{
-			default:
-			case 0:
-				lcd.print(" CFG  THR  SPD  JOG ");
-				break;
-			case 1:
-				lcd.print("\003CFG\002 THR  SPD  JOG ");
-				break;
-			case 2:
-				lcd.print(" CFG \003THR\002 SPD  JOG ");
-				break;
-			case 3:
-				lcd.print(" CFG  THR \003SPD\002 JOG ");
-				break;
-			case 4:
-				lcd.print(" CFG  THR  SPD \003JOG\002");
-			break;
-		}
+		lcd.print(" CFG  THR  SPD  JOG ");		
 	}
 
 	void drawLoop() override
@@ -231,16 +250,25 @@ struct MainPage : Page
 		// handle inputs for main page if needed
 		if (btns & 0x01)
 		{
-			// BTN0 pressed
-			pageDst = (pageDst + 1) % 4;	
-			drawOnce();
+			// BTN1 pressed
+			goToPage(1);
 		}
 		if (btns & 0x02)
 		{
-			// BTN1 pressed			
-			goToPage(pageDst);
-
+			// BTN2 pressed			
+			goToPage(2);
 		}
+		if (btns & 0x04)
+		{
+			// BTN3 pressed			
+			goToPage(3);
+		}
+		if (btns & 0x08)
+		{
+			// BTN4 pressed			
+			armExec();
+		}
+
 	}
 };
 MainPage mainPage;
@@ -248,6 +276,12 @@ MainPage mainPage;
 
 struct CfgPage : Page
 {
+	int selField = 0;
+
+	void enterPage() override
+	{
+		selField = 0;
+	}
 	void drawOnce() override
 	{
 		lcd.clear();
@@ -255,7 +289,7 @@ struct CfgPage : Page
 		lcd.setCursor(0, 2);
 		
 		lcd.setCursor(0, 3);
-		lcd.print("\003SET\002 MoV  SpV  HdW ");
+		lcd.print((String)"     "+LabelAct("MoV", selField == 1)+LabelAct("SpV", selField == 2)+LabelAct("HdW", selField == 3));
 	}
 	void drawLoop() override
 	{
@@ -267,13 +301,43 @@ struct CfgPage : Page
 	{
 		// handle inputs for main page if needed
 		if (btns & 0x01)
+		{
 			goToPage(0);
+			return;
+		}
+		if (btns & 0x02)
+		{
+			selField = 1;
+			drawOnce();
+			return;
+		}
+		if (btns & 0x04)
+		{
+			selField = 2;
+			drawOnce();
+			return;
+		}
+		if (btns & 0x08)
+		{
+			selField = 3;
+			drawOnce();
+
+			armExec();
+			return;
+		}
+
+		if (btns & 0x10)
+		{
+			hdwhlCount = 0;
+		}
 	}
 };
 CfgPage cfgPage;
 
 struct ThreadingPage : Page
 {
+	int selField = 0;
+
 
 	void drawOnce() override
 	{
@@ -287,17 +351,43 @@ struct ThreadingPage : Page
 
 
 		lcd.setCursor(0, 3);
-		lcd.print("\003THR\002 PDT  END  JOG ");
+		lcd.print((String)"     " + LabelAct("PDT", selField == 1) + LabelAct("END", selField == 2) + LabelAct("JOG", selField == 3));
+
+		//lcd.print("\003THR\002 PDT  END  JOG ");
 	}
 	void drawLoop() override
 	{
-		pvHdWhl.drawAt(lcd, C_FIELD0, 3);
+		pvSpndl.drawAt(lcd, C_FIELD0, 3);
 	}
 	void handleInputs(uint8_t btns) override
 	{
-		// handle inputs for main page if needed
 		if (btns & 0x01)
+		{
 			goToPage(0);
+			return;
+		}
+		if (btns & 0x02)
+		{
+			selField = 1;
+			drawOnce();
+			return;
+		}
+		if (btns & 0x04)
+		{
+			selField = 2;
+			drawOnce();
+			return;
+		}
+		if (btns & 0x08)
+		{
+			selField = 3;
+			drawOnce();
+
+			armExec();
+			return;
+		}
+
+
 	}
 };
 ThreadingPage threadingPage;
@@ -332,7 +422,7 @@ struct SpdPage : Page
 
 		// l3
 		lcd.setCursor(0, 3);
-		lcd.print("\003SPD\002 FRT  ZRO  JOG ");
+		lcd.print("\003SPD\002 FRT  ZRO  RUN ");
 	}
 	void drawLoop() override
 	{
@@ -346,30 +436,44 @@ struct SpdPage : Page
 		{
 			goToPage(0);
 			return;
-		}
-
-		if (btns & 0x02)
+		}		
+		if (btns & 0x04)
 		{
 			motorSpeed = 0;
 			hdWhl0 = hdwhlCount;
+			motor.stop();
+		}
+		if (btns & 0x08)
+		{
+			armExec();
+		}
+
+		if (btns & 0x10)
+		{
+			motorSpeed = 0;
+			hdWhl0 = hdwhlCount;
+			motor.stop();
 		}
 		else
 		{
-			int newspd = hdwhlCount - hdWhl0;
-
-			if (motorSpeed != newspd)
+			int spdSetting = hdwhlCount - hdWhl0;
+						
+			if (motorSpeed != spdSetting)
 			{
-				if (newspd == 0)
+				if (spdSetting == 0)
 					motor.stop();
-				else								
-					motor.setSpeed(newspd);
-			
-				motorSpeed = newspd;
-			}
-		}
+				else if (execArmed)
+					motor.setSpeed(spdSetting);
 
-		if (motorSpeed != 0)
-			motor.runSpeed();
+				motorSpeed = spdSetting;
+			}
+
+			if (execArmed && motorSpeed != 0)
+			{
+				motor.runSpeed();
+			}
+		
+		}
 
 	}
 	void exitPage() override
@@ -379,6 +483,13 @@ struct SpdPage : Page
 	}
 };
 SpdPage spdPage;
+
+
+
+
+
+
+
 
 
 
@@ -395,13 +506,34 @@ void setPage(Page* p)
 	currentPage->enterPage();
 	currentPage->drawOnce();
 }
+void goToPage(int iPage)
+{
+	switch (iPage)
+	{
+	default:
+	case 0:
+		setPage(&mainPage);
+		break;
+	case 1:
+		setPage(&cfgPage);
+		break;
+	case 2:
+		setPage(&threadingPage);
+		break;
+	case 3:
+		setPage(&spdPage);
+		break;
+
+	}
+	Serial.print("Page set to ");
+	Serial.println(iPage);
+}
 
 
-
-
-
-
-
+// ==========================================================================================================================
+// ==========================================================================================================================
+// ==========================================================================================================================
+// ==========================================================================================================================
 
 
 
@@ -454,7 +586,13 @@ void setup()
 	delay(1500);
 
 	// buttons
-	pinMode(BTN0, INPUT_PULLUP);
+	pinMode(BTNZRO, INPUT_PULLUP);
+	
+	pinMode(BTNEXE, INPUT_PULLUP); 
+	pinMode(LEDEXE, OUTPUT);
+
+
+
 	pinMode(BTN1, INPUT_PULLUP);
 	pinMode(BTN2, INPUT_PULLUP);
 	pinMode(BTN3, INPUT_PULLUP);
@@ -488,23 +626,35 @@ void loop()
 	currentPage->drawLoop();
 
 	// handle input
+	
 	// grab button states here and pass
-
 	uint8_t stBtns = 0;
-	if (digitalRead(BTN0) == LOW) stBtns |= 0x10; // zero button
+	if (digitalRead(BTNZRO) == LOW) stBtns |= 0x10; // zero button		
 
 	if (digitalRead(BTN1) == LOW) stBtns |= 0x01; // SK1	
 	if (digitalRead(BTN2) == LOW) stBtns |= 0x02; // SK2
 	if (digitalRead(BTN3) == LOW) stBtns |= 0x04; // SK3
 	if (digitalRead(BTN4) == LOW) stBtns |= 0x08; // SK4
+	
 
 	currentPage->handleInputs(stBtns);
+
+	if (handleExec())
+	{
+		// handle exec button action (maybe arming the exec takes a callback to execute on click?)
+	}
 
 	if (stBtns != 0)
 		delay(150); // simple debounce
 
 		
 }
+
+
+// ==========================================================================================================================
+// ==========================================================================================================================
+// ==========================================================================================================================
+// ==========================================================================================================================
 
 
 
@@ -594,29 +744,6 @@ String parseChars(String inStr)
 
 
 
-
-void goToPage(int iPage)
-{
-	switch (iPage)
-	{
-	default:
-	case 0:
-		setPage(&mainPage);
-		break;
-	case 1:
-		setPage(&cfgPage);
-		break;
-	case 2:
-		setPage(&threadingPage);
-		break;
-	case 3:
-		setPage(&spdPage);
-		break;
-
-	}
-	Serial.print("Page set to ");
-	Serial.println(iPage);
-}
 
 
 
