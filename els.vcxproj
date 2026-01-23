@@ -94,6 +94,14 @@
     <ProjectCapability Include="VisualMicro" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArmingButton.h" />
+    <ClInclude Include="ConfigPage.h" />
+    <ClInclude Include="LCDCustomChars.h" />
+    <ClInclude Include="MainPage.h" />
+    <ClInclude Include="Page.h" />
+    <ClInclude Include="SerialComms.h" />
+    <ClInclude Include="SpeedPage.h" />
+    <ClInclude Include="ThreadingPage.h" />
     <ClInclude Include="__vm\.els.vsarduino.h" />
   </ItemGroup>
   <PropertyGroup>
