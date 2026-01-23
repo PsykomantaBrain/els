@@ -57,6 +57,8 @@
 // config params -------------------------------
 // these need to get saved to eeprom and reloaded on startup 
 
+int btnsState = 0; // current button states bitmask
+
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
 
@@ -98,6 +100,8 @@ ArmingButton btnRun(BTNRUN, LEDRUN);
 PageValueRegion pvHdWhl = PageValueRegion(4, &hdwhlCount);
 PageValueRegion pvSpndl = PageValueRegion(4, &spndlCount);
 PageValueRegion pvMoV = PageValueRegion(4, &motorStepsPerRev);
+
+PageValueRegion pvBtns = PageValueRegion(4, &btnsState);
 
 Page* currentPage = nullptr;
 
@@ -273,12 +277,11 @@ void loop()
 
 	if (digitalRead(BTNZRO) == LOW) skBtns |= 0x0100; // ZERO button
 
-
-
+	btnsState = skBtns; 
 	currentPage->pageUpdate(skBtns);
 
 	if (skBtns != 0)
-		delay(250); // simple debounce
+		delay(150); // simple debounce
 
 		
 }

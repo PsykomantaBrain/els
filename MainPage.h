@@ -37,6 +37,8 @@ struct MainPage : Page
 		pvSpndl.drawAt(lcd, C_FIELD1, 1);
 		pvHdWhl.drawAt(lcd, C_FIELD1, 2);
 
+		//pvBtns.drawAt(lcd, C_FIELD3, 2);
+
 	}
 	void pageUpdate(uint16_t btns) override
 	{
@@ -46,22 +48,26 @@ struct MainPage : Page
 		if (btns & 0x0001)
 		{
 			// nothing in this page. This is the RTN button in other pages.
+			return;
 		}
 		if (btns & 0x0002)
 		{
 			// BTN2 pressed			
-			goToPage(2);
+			goToPage(PAGE_THREADING);
+			return;
 		}
 		if (btns & 0x0004)
 		{
 			// BTN3 pressed			
-			goToPage(3);
+			goToPage(PAGE_SPEED);
+			return;
 		}
 		if (btns & 0x0008)
 		{
 			// BTN4 pressed			
-	
+			return;
 		}
+
 
 		if (btns & 0x0010)
 		{
@@ -70,14 +76,17 @@ struct MainPage : Page
 		if (btns & 0x0020)
 		{
 			// BTN6 pressed			
+			return;
 		}
 		if (btns & 0x0040)
 		{
-			// BTN7 pressed			
+			// BTN7 pressed		
+			return;	
 		}
 		if (btns & 0x0080)
 		{			
 			goToPage(PAGE_CONFIG);
+			return;
 		}
 	}
 };
