@@ -249,33 +249,35 @@ void loop()
 
 	// handle input
 	
-	// handle arming buttons first, nothing else if they are pressed
-	if (btnStop.inputUpdate())
-	{
-		Serial.println("STOP triggered");
-		return;
-	}
-	if (btnRun.inputUpdate())
-	{
-		Serial.println("RUN triggered");
-		return;
-	}
-
+	
 
 	// grab button states here and pass
 	uint16_t skBtns = 0;
 
+	// handle arming buttons first, nothing else if they are pressed
+	if (btnStop.inputUpdate())
+	{
+		Serial.println("STOP triggered");	
+		skBtns |= 0x2000; 
+	}
+	else if (btnRun.inputUpdate())
+	{
+		Serial.println("RUN triggered");
+		skBtns |= 0x1000; 
+	}
+	else
+	{
+		if (digitalRead(BTNZRO) == LOW) skBtns |= 0x0100; // ZERO button
 
-	if (digitalRead(BTN1) == LOW) skBtns |= 0x0001; // SK1	
-	if (digitalRead(BTN2) == LOW) skBtns |= 0x0002; // SK2
-	if (digitalRead(BTN3) == LOW) skBtns |= 0x0004; // SK3
-	if (digitalRead(BTN4) == LOW) skBtns |= 0x0008; // SK4
-	if (digitalRead(BTN5) == LOW) skBtns |= 0x0010; // SK5
-	if (digitalRead(BTN6) == LOW) skBtns |= 0x0020; // SK6
-	if (digitalRead(BTN7) == LOW) skBtns |= 0x0040; // SK7
-	if (digitalRead(BTN8) == LOW) skBtns |= 0x0080; // SK8
-
-	if (digitalRead(BTNZRO) == LOW) skBtns |= 0x0100; // ZERO button
+		if (digitalRead(BTN1) == LOW) skBtns |= 0x0001; // SK1	
+		if (digitalRead(BTN2) == LOW) skBtns |= 0x0002; // SK2
+		if (digitalRead(BTN3) == LOW) skBtns |= 0x0004; // SK3
+		if (digitalRead(BTN4) == LOW) skBtns |= 0x0008; // SK4
+		if (digitalRead(BTN5) == LOW) skBtns |= 0x0010; // SK5
+		if (digitalRead(BTN6) == LOW) skBtns |= 0x0020; // SK6
+		if (digitalRead(BTN7) == LOW) skBtns |= 0x0040; // SK7
+		if (digitalRead(BTN8) == LOW) skBtns |= 0x0080; // SK8
+	}
 
 	btnsState = skBtns; 
 	currentPage->pageUpdate(skBtns);

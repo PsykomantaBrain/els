@@ -1,6 +1,7 @@
 #pragma once
 
 
+
 struct SpdPage : Page
 {
 
@@ -18,10 +19,26 @@ struct SpdPage : Page
 		motor.setAcceleration(50);
 
 		// arm run button
-		btnRun.arm(nullptr);
+		btnRun.arm(); 
 
 	}
 	
+	void onRunPressed()
+	{
+		// start motor at current speed setting
+		if (motorSpeed != 0)
+		{
+			motor.setSpeed(motorSpeed);
+			btnStop.arm();
+		}
+	}
+	void onStopPressed()
+	{
+		// stop motor
+		motor.stop();
+		motorSpeed = 0;
+		btnRun.disarm();
+	}
 
 	void drawOnce() override
 	{

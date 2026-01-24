@@ -10,8 +10,6 @@ private:
 
 	bool armed = 0;
 	
-	// Callback function to be called on press
-	void (*onPress)() = nullptr;
 
 public:
 
@@ -24,16 +22,14 @@ public:
 	}
 	~ArmingButton() {}
 
-	void arm(void (*callback)())	
+	void arm()
 	{
-		armed = true;
-		onPress = callback;
+		armed = true;		
 		digitalWrite(pinLed, HIGH);
 	}
 	void disarm()
 	{
-		armed = false;
-		onPress = nullptr;
+		armed = false;		
 		digitalWrite(pinLed, LOW);
 	}
 
@@ -44,10 +40,7 @@ public:
 			armed = false; // disarm after press
 			digitalWrite(pinLed, LOW);
 			
-			if (onPress != nullptr)
-			{
-				onPress();
-			}
+		
 			return true;
 		}
 		return false;

@@ -48,7 +48,7 @@ struct CfgPage : Page
 			selField = 3;
 			drawOnce();
 
-			btnRun.arm(nullptr);
+			btnRun.arm();
 
 			return;
 		}
@@ -57,6 +57,10 @@ struct CfgPage : Page
 		{
 			hdwhlCount = 0;
 		}
+	}
+	void exitPage() override
+	{
+		btnRun.disarm();
 	}
 };
 CfgPage cfgPage;
