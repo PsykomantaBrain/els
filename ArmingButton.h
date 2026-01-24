@@ -13,6 +13,11 @@ private:
 
 public:
 
+	bool IsArmed()
+	{
+		return armed;
+	}
+
 	//ctor
 	ArmingButton(uint8_t btnPin, uint8_t ledPin) : pinBtn(btnPin), pinLed(ledPin)
 	{
@@ -36,11 +41,7 @@ public:
 	bool inputUpdate()
 	{
 		if (armed && digitalRead(pinBtn) == LOW)
-		{
-			armed = false; // disarm after press
-			digitalWrite(pinLed, LOW);
-			
-		
+		{	
 			return true;
 		}
 		return false;

@@ -10,7 +10,7 @@
 
 
 
-struct PageValueRegion
+struct PageValueInt
 {
 
 private:
@@ -21,7 +21,7 @@ public:
 
 	volatile int* linkedValue = nullptr;
 
-	PageValueRegion(uint8_t l, volatile int* val)
+	PageValueInt(uint8_t l, volatile int* val)
 	{
 		length = l;
 		linkedValue = val;
@@ -37,6 +37,60 @@ public:
 		lcd.print(buffer);
 	}
 };
+
+struct PageValueStr
+{
+
+private:
+	char buffer[16];
+
+public:
+	uint8_t length;
+	String* linkedValue = nullptr;
+
+	PageValueStr(uint8_t l, String* val)
+	{
+		length = l;
+		linkedValue = val;
+	}
+
+
+	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+	{
+		lcd.setCursor(col, row);
+		
+		snprintf(buffer, sizeof(buffer), "%-*s", length, linkedValue->c_str());
+		lcd.print(buffer);
+	}
+};
+
+
+struct PageValueEnum
+{
+private:
+	char buffer[16];
+public:
+	uint8_t length;
+	volatile int* linkedValue = nullptr;
+	const String* enumLabels = nullptr;
+
+	PageValueEnum(uint8_t l, volatile int* val, const String* labels)
+	{
+		length = l;
+		linkedValue = val;
+		enumLabels = labels;
+	}
+
+	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+	{
+		lcd.setCursor(col, row);
+		// draw value with leading zeros to fill length
+		const String label = enumLabels[*linkedValue];
+		snprintf(buffer, sizeof(buffer), "%-*s", length, label);
+		lcd.print(buffer);
+	}
+};
+
 
 
 struct Page

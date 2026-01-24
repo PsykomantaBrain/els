@@ -5,47 +5,34 @@
 struct SpdPage : Page
 {
 
-	int motorSpeed = 0;
+	int motorPPSCmd = 0;
+	int motorPPSSet = 0;
+	int motorDirection = 1; // 0=REV, 1 = STP, 2=REV
 	int hdWhl0;
 
-	PageValueRegion pvTgtSpeed = PageValueRegion(4, &motorSpeed);
+	PageValueInt pvCmdSpeed = PageValueInt(4, &motorPPSCmd);
+	PageValueInt pvSetSpeed = PageValueInt(4, &motorPPSSet);
+
+	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, (String[]) { "REV ", "STOP", " FWD" });
 
 	void enterPage() override
 	{
 		hdWhl0 = hdwhlCount;
-		motorSpeed = 0;
 
-		motor.stop();
-		motor.setAcceleration(50);
+		motorPPSCmd = 0;		
+		motorDirection = 1; // stop
 
-		// arm run button
-		btnRun.arm(); 
 
 	}
 	
-	void onRunPressed()
-	{
-		// start motor at current speed setting
-		if (motorSpeed != 0)
-		{
-			motor.setSpeed(motorSpeed);
-			btnStop.arm();
-		}
-	}
-	void onStopPressed()
-	{
-		// stop motor
-		motor.stop();
-		motorSpeed = 0;
-		btnRun.disarm();
-	}
+
 
 	void drawOnce() override
 	{
 		// thrd page
 		lcd.clear();		
 		// l0
-		lcd.print("SPNDL ...  ...  ... ");
+		lcd.print("LEDC DIR  ...  ... ");
 		
 		// l1
 		pvSpndl.drawAt(lcd, C_FIELD0, 1);
@@ -53,56 +40,96 @@ struct SpdPage : Page
 
 		// l3
 		lcd.setCursor(0, 3);
-		lcd.print("\003SPD\002 PSR  adv  ... ");
+		lcd.print("\003SPD\002 PPS  rps  rpm ");
 	}
 	void drawLoop() override
 	{
-		pvSpndl.drawAt(lcd, C_FIELD0, 1);
-		pvTgtSpeed.drawAt(lcd, C_FIELD1, 2);
+		motorPPSSet = stepperGetCurrentPulseRate();
+
+		pvSetSpeed.drawAt(lcd, C_FIELD0, 1);
+		pvDir.drawAt(lcd, C_FIELD1, 1);
+
+
+		pvCmdSpeed.drawAt(lcd, C_FIELD1, 2);
+	}
+
+
+
+	void onRunPressed()
+	{
+		// start motor at current speed setting
+		if (motorPPSCmd != 0)
+		{
+			motorPPSSet = stepperRunPPS((float)motorPPSCmd);
+
+			// disarm run button
+			btnRun.disarm();
+			btnStop.arm();
+		}
+	}
+	void onStopPressed()
+	{		
+		// stop motor (only disarm if actually stopped)
+		if (stepperStop())
+			btnStop.disarm();
+
 	}
 
 	void pageUpdate(uint16_t btns) override
-	{
-		// handle inputs for main page if needed
-		if (btns & 0x0001)
+	{		
+		if ((btns & 0x0001) && !btnStop.IsArmed())
 		{
 			goToPage(0);
 			return;
 		}
-		if (btns & 0x0004)
+		if (btns & 0x1000) // RUN
 		{
-			motorSpeed = 0;
+			onRunPressed();
+			return;
+		}
+		if (btns & 0x2000) // STOP
+		{
+			onStopPressed();
+			return;
+		}
+
+		if (btns & 0x0100) // ZERO
+		{
 			hdWhl0 = hdwhlCount;
-			motor.stop();
+			motorPPSCmd = 0;
 		}
-		if (btns & 0x0008)
+				
+		// update speed command from handwheel
+		motorPPSCmd = hdwhlCount - hdWhl0;		
+
+
+
+		if (sign(motorPPSCmd) != (sign(motorDirection) + 1))
 		{
-			
-			return;			
+			motorDirection = sign(motorPPSCmd) + 1;
+		}		
+		// while running, allow realtime speed changes
+		if (btnStop.IsArmed())
+		{
+			motorPPSSet = stepperRunPPS((float)motorPPSCmd);
 		}
+		else
+		{
+			// while not running, arm/disarm RUN button based whether speed command is non-zero
+			if ((fabsf(motorPPSCmd) >= 10) != btnRun.IsArmed())
+			{
+				if (fabsf(motorPPSCmd) >= 10)
+					btnRun.arm();
+				else
+					btnRun.disarm();
+			}
 
-
+		}
 		
-		int spdSetting = hdwhlCount - hdWhl0;
-		if (motorSpeed != spdSetting)
-		{
-			if (spdSetting == 0)
-				motor.stop();
-			else
-				motor.setSpeed(spdSetting);
-
-			motorSpeed = spdSetting;
-		}
-		if (motorSpeed != 0)
-		{
-			motor.runSpeed();
-		}
-
 	}
 	void exitPage() override
 	{
-		motor.stop();
-		motorSpeed = 0;
+		stepperStop();
 
 		btnRun.disarm();
 		btnStop.disarm();

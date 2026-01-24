@@ -5,7 +5,7 @@
 */
 #pragma once
 
-#include <AccelStepper.h>
+//#include <AccelStepper.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
@@ -73,8 +73,9 @@ int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
 volatile int spndlCount = 0;
 volatile int hdwhlCount = 0;
 
-AccelStepper motor(AccelStepper::DRIVER, MOTOR_PIN_STEP, MOTOR_PIN_DIR);
+//AccelStepper motor(AccelStepper::DRIVER, MOTOR_PIN_STEP, MOTOR_PIN_DIR);
 
+#include "LedcStepperCtrl.h"
 
 
 //initialize the liquid crystal library
@@ -97,11 +98,11 @@ ArmingButton btnRun(BTNRUN, LEDRUN);
 #include "Page.h"
 
 
-PageValueRegion pvHdWhl = PageValueRegion(4, &hdwhlCount);
-PageValueRegion pvSpndl = PageValueRegion(4, &spndlCount);
-PageValueRegion pvMoV = PageValueRegion(4, &motorStepsPerRev);
+PageValueInt pvHdWhl = PageValueInt(4, &hdwhlCount);
+PageValueInt pvSpndl = PageValueInt(4, &spndlCount);
+PageValueInt pvMoV = PageValueInt(4, &motorStepsPerRev);
 
-PageValueRegion pvBtns = PageValueRegion(4, &btnsState);
+PageValueInt pvBtns = PageValueInt(4, &btnsState);
 
 Page* currentPage = nullptr;
 
@@ -169,18 +170,16 @@ void goToPage(int iPage)
 
 #include "SerialComms.h"
 
+
 void setup() 
 {
 	// init usb serial for controlling
 	Serial.begin(115200);
-
-	pinMode(MOTOR_PIN_DIR,  OUTPUT);
-	pinMode(MOTOR_PIN_STEP, OUTPUT);
-	motor.setMinPulseWidth(60); // set step pulse width to 600us
-	motor.setPinsInverted(false, true, false);
-	motor.setMaxSpeed(4000); // set max speed
-	motor.setAcceleration(100); // set acceleration
-	motor.stop();
+	//motor.setMinPulseWidth(60); // set step pulse width to 600us
+	//motor.setPinsInverted(false, true, false);
+	//motor.setMaxSpeed(4000); // set max speed
+	//motor.setAcceleration(100); // set acceleration
+	//motor.stop();
 
 	// just for now, read spindle encoder with interrupts.
 	// later the idea is to use PCNT hardware peripheral for this
@@ -197,7 +196,7 @@ void setup()
 	lcd.init();	
 	lcd.backlight();
 	lcd.setBacklight(64);	
-	delay(2000);	
+	delay(1000);	
 	addLCDCustomChars(lcd);
 	
 	
@@ -205,10 +204,18 @@ void setup()
 	lcd.setCursor(0, 1);
 	lcd.print(" HRVToolworks ELS");
 	lcd.setCursor(0, 2);
-	lcd.print("  \000\001\002\003\004\005");
+	lcd.print(" \001\002\003\004\005");
 
 
-	delay(1500);
+	delay(1000);
+
+	
+	if (stepperSetup())
+		lcd.print("OK");
+	else
+		lcd.print("STEPPER FAIL");
+
+	delay(500);
 
 	// buttons
 	pinMode(BTNZRO, INPUT_PULLUP);

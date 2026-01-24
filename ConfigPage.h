@@ -3,7 +3,9 @@
 struct CfgPage : Page
 {
 	int selField = 0;
+	int hdw0, v0;
 
+	
 	void enterPage() override
 	{
 		selField = 0;
@@ -11,11 +13,13 @@ struct CfgPage : Page
 	void drawOnce() override
 	{
 		lcd.clear();
-		lcd.print("SPNDL ");
+		lcd.print("SPNDL ...  ...  ... ");
+		lcd.setCursor(0, 1);
+		lcd.print(" ...  ...  ...  ... ");
 		lcd.setCursor(0, 2);
-		
+		lcd.print(" ...  ...  ...  ... ");
 		lcd.setCursor(0, 3);
-		lcd.print((String)" CFG "+LabelAct("MoV", selField == 1)+LabelAct("SpV", selField == 2)+LabelAct("HdW", selField == 3));
+		lcd.print((String)" CFG "+LabelAct("MoV", selField == 1)+LabelAct("SpV", selField == 2)+LabelAct("HdW", selField == -1));
 	}
 	void drawLoop() override
 	{
@@ -31,10 +35,22 @@ struct CfgPage : Page
 			goToPage(0);
 			return;
 		}
-		if (btns & 0x0002)
+		if (btns & 0x0002) // MoV
 		{
-			selField = 1;
-			drawOnce();
+			if (selField != 1)
+			{
+				selField = 1;
+
+				// set handwheel to configure the motor steps per rev
+				hdw0 = motorStepsPerRev - hdwhlCount;
+				v0 = motorStepsPerRev;
+				drawOnce();
+			}
+			else
+			{
+				// commit the new value
+				motorStepsPerRev = hdw0 + hdwhlCount;
+			}
 			return;
 		}
 		if (btns & 0x0004)
@@ -47,20 +63,34 @@ struct CfgPage : Page
 		{
 			selField = 3;
 			drawOnce();
-
-			btnRun.arm();
-
 			return;
 		}
 
-		if (btns & 0x0010)
+		// handle handwheel changes
+
+		if (selField == 1)
 		{
-			hdwhlCount = 0;
+			if (btns & 0x0100) // ZERO
+			{
+				hdw0 = hdwhlCount;
+				motorStepsPerRev = v0;
+				selField = 0;
+
+				drawOnce();
+				drawLoop();
+				delay(500);
+				return;
+			}
+
+			int newVal = hdw0 + hdwhlCount;
+			if (newVal != motorStepsPerRev)
+			{
+				motorStepsPerRev = newVal;				
+			}
 		}
 	}
 	void exitPage() override
-	{
-		btnRun.disarm();
+	{		
 	}
 };
 CfgPage cfgPage;

@@ -9,7 +9,7 @@ struct ThreadingPage : Page
 	{
 		// thrd page
 		lcd.clear();
-		lcd.print((String)"     " + LabelAct("PCH", selField == 1) + LabelAct("   ", selField == -1) + LabelAct("   ", selField == -1));		
+		lcd.print((String)"     " + LabelAct("PCH", selField == -1) + LabelAct("   ", selField == -1) + LabelAct("   ", selField == -1));		
 		lcd.setCursor(0, 1);
 		lcd.print("  M3  042  ...  ... ");
 		lcd.setCursor(0, 2);
