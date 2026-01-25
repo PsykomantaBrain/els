@@ -53,5 +53,8 @@
     <ClInclude Include="LedcStepperCtrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FastAccelStepperCtrl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

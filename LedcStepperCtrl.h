@@ -9,7 +9,7 @@ float stepperGetCurrentPulseRate()
 	return (float)ledcReadFreq(MOTOR_PIN_STEP);
 }
 
-bool stepperSetup()  
+bool stepperSetup(uint8_t ledcResolution = 8)  
 {  
 	bool ok = true;
 
@@ -17,7 +17,7 @@ bool stepperSetup()
 	pinMode(MOTOR_PIN_STEP, OUTPUT);
 
 	// configure LEDC for stepper control
-	ok &= ledcAttach(MOTOR_PIN_STEP, 1000, 12);              // 1kHz initial freq, 14-bit resolution 
+	ok &= ledcAttach(MOTOR_PIN_STEP, 1000, ledcResolution);              // 1kHz initial freq, 14-bit resolution 
 	ok &= ledcWrite(MOTOR_PIN_STEP, 0);                   // start with 0 duty cycle (no pulses)
 
 	return ok;

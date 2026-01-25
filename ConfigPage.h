@@ -13,7 +13,7 @@ struct CfgPage : Page
 	void drawOnce() override
 	{
 		lcd.clear();
-		lcd.print("SPNDL ...  ...  ... ");
+		lcd.print((String)"SPNDL "+ LabelAct("LSP", selField == 5) +" ...  ... ");
 		lcd.setCursor(0, 1);
 		lcd.print(" ...  ...  ...  ... ");
 		lcd.setCursor(0, 2);
@@ -29,39 +29,59 @@ struct CfgPage : Page
 	}
 	void pageUpdate(uint16_t btns) override
 	{
-		// handle inputs for main page if needed
-		if (btns & 0x0001)
+		if (btns != 0 && btns < 0x0100) // handle buttons 1-8 first
 		{
-			goToPage(0);
-			return;
-		}
-		if (btns & 0x0002) // MoV
-		{
-			if (selField != 1)
+			switch (btns)
 			{
-				selField = 1;
+				default:
+					if (selField != -1)
+					{
+						selField = -1;
+						drawOnce();
+						return;
+					}
+				break;
 
-				// set handwheel to configure the motor steps per rev
-				hdw0 = motorStepsPerRev - hdwhlCount;
-				v0 = motorStepsPerRev;
-				drawOnce();
+			case 0x0001: // SK1 RTN
+				goToPage(0);
+				return;
+
+			case 0x0002: // SK2 MoV
+				if (selField != 1)
+				{
+					selField = 1;
+					// set handwheel to configure the motor steps per rev
+					hdw0 = motorStepsPerRev - hdwhlCount;
+					v0 = motorStepsPerRev;
+				}
+				else
+				{
+					selField = -1;
+				}
+				break;
+
+			case 0x0004: // SK3 HdW
+				selField = 2;				
+				break;
+
+			case 0x0008: // SK4 SpV
+				selField = 3;
+				break;
+
+			// case 0x0010: // SK4
+
+			case 0x0020: // SK5 SpV
+				selField = 5;
+				break;
 			}
-			return;
-		}
-		if (btns & 0x0004)
-		{
-			selField = 2;
-			drawOnce();
-			return;
-		}
-		if (btns & 0x0008)
-		{
-			selField = 3;
+			// case 0x0040: // SK6
+			// case 0x0080: // SK7
+
 			drawOnce();
 			return;
 		}
 
-		// handle handwheel changes
+
 
 		if (selField == 1)
 		{

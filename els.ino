@@ -5,14 +5,23 @@
 */
 #pragma once
 
-//#include <AccelStepper.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <AVRStepperPins.h>
+#include <FastAccelStepper.h>
+#include <Log2Representation.h>
+#include <Log2RepresentationConst.h>
+#include <pico_pio.h>
+#include <RampCalculator.h>
+#include <RampControl.h>
+#include <RampGenerator.h>
+#include <StepperISR.h>
+
 
 #include <Arduino.h>
 
-
 #define sign(x) ((x) > 0 ? 1 : ((x) < 0 ? -1 : 0))
+
+
+
 
 
 
@@ -49,9 +58,17 @@
 #define RTR0_B 19
 
 
+#define I2C_SCL SCL
+#define I2C_SDA SDA
 
 
 
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+
+//#include "LedcStepperCtrl.h"
+#include "FastAccelStepperCtrl.h"
 
 
 // config params -------------------------------
@@ -61,7 +78,7 @@ int btnsState = 0; // current button states bitmask
 
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
-
+int leadscrewPitchMM = 2;      // lead screw pitch in mm/rev
 
 
 
@@ -73,17 +90,13 @@ int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
 volatile int spndlCount = 0;
 volatile int hdwhlCount = 0;
 
-//AccelStepper motor(AccelStepper::DRIVER, MOTOR_PIN_STEP, MOTOR_PIN_DIR);
-
-#include "LedcStepperCtrl.h"
 
 
 //initialize the liquid crystal library
 //the first parameter is the I2C address
 //the second parameter is how many rows are on your screen
 //the third parameter is how many columns are on your screen
-#define I2C_SCL SCL
-#define I2C_SDA SDA
+
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 #include "LCDCustomChars.h"
@@ -197,23 +210,30 @@ void setup()
 	lcd.backlight();
 	lcd.setBacklight(64);	
 	delay(1000);	
-	addLCDCustomChars(lcd);
-	
-	
-	
+	addLCDCustomChars(lcd);		
+
+
 	lcd.setCursor(0, 1);
 	lcd.print(" HRVToolworks ELS");
 	lcd.setCursor(0, 2);
-	lcd.print(" \001\002\003\004\005");
-
+	testLCDCustomChars(lcd);
+	
 
 	delay(1000);
 
-	
-	if (stepperSetup())
+
+	const uint8_t ledcRes = 16; // ledc resolution bits
+	lcd.print(ledcRes); 
+	if (stepperSetup(ledcRes))
+	{
 		lcd.print("OK");
+		Serial.println((String)"Stepper Config Ok ("+ ledcRes +(String)"bit LEDC)");
+	}
 	else
-		lcd.print("STEPPER FAIL");
+	{
+		lcd.print(" STPPR FAIL");
+		Serial.println((String)"Stepper Config FAILED ("+ ledcRes +(String)"bit LEDC)");
+	}
 
 	delay(500);
 

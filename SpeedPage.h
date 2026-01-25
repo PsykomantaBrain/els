@@ -13,7 +13,7 @@ struct SpdPage : Page
 	PageValueInt pvCmdSpeed = PageValueInt(4, &motorPPSCmd);
 	PageValueInt pvSetSpeed = PageValueInt(4, &motorPPSSet);
 
-	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, (String[]) { "REV ", "STOP", " FWD" });
+	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "REV STOP FWD" );
 
 	void enterPage() override
 	{
@@ -32,7 +32,7 @@ struct SpdPage : Page
 		// thrd page
 		lcd.clear();		
 		// l0
-		lcd.print("LEDC DIR  ...  ... ");
+		lcd.print("VSET DIR  ...  ... ");
 		
 		// l1
 		pvSpndl.drawAt(lcd, C_FIELD0, 1);

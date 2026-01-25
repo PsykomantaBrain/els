@@ -59,7 +59,7 @@ public:
 	{
 		lcd.setCursor(col, row);
 		
-		snprintf(buffer, sizeof(buffer), "%-*s", length, linkedValue->c_str());
+		snprintf(buffer, length+1, "%s", linkedValue->c_str());
 		lcd.print(buffer);
 	}
 };
@@ -68,26 +68,32 @@ public:
 struct PageValueEnum
 {
 private:
+	uint8_t len;
 	char buffer[16];
-public:
-	uint8_t length;
-	volatile int* linkedValue = nullptr;
-	const String* enumLabels = nullptr;
 
-	PageValueEnum(uint8_t l, volatile int* val, const String* labels)
+public:
+	volatile int* linkedValue = nullptr;
+	char* enumLabels;
+
+	PageValueEnum(uint8_t labelLen, volatile int* val, char* labels)
 	{
-		length = l;
 		linkedValue = val;
 		enumLabels = labels;
+		len = labelLen;
+
 	}
 
 	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
 	{
 		lcd.setCursor(col, row);
-		// draw value with leading zeros to fill length
-		const String label = enumLabels[*linkedValue];
-		snprintf(buffer, sizeof(buffer), "%-*s", length, label);
+		
+		// print len chars from enumLabels at index linkedValue*len
+		
+		snprintf(buffer, len+1, "%s", &enumLabels[(*linkedValue) * len]);
+
 		lcd.print(buffer);
+		
+		
 	}
 };
 
@@ -107,5 +113,53 @@ struct Page
 	virtual void pageUpdate(uint16_t btns) {}
 
 	virtual void exitPage() {}
+
+};
+
+
+struct EditableValueInt
+{
+
+	volatile int* linkedValue = nullptr;
+	int step = 1;
+
+	int v0, hdwl0;
+	int vDisplay;
+
+	bool editing;
+
+	EditableValueInt(volatile int* val, int s)
+	{
+		linkedValue = val;
+		step = s;
+
+		v0 = *linkedValue;
+		vDisplay = v0;
+	}
+
+	void beginEdit(int hdwl)
+	{
+		hdwl0 = hdwl;
+		v0 = *linkedValue;
+		vDisplay = v0;
+		editing = true;
+	}
+	
+	void updateEdit(int hdwl)
+	{
+		vDisplay = v0 + ((hdwl - hdwl0)*step);
+	}
+
+	void commitEdit()
+	{
+		*linkedValue = vDisplay;
+		editing = false;
+	}
+	void cancelEdit()
+	{
+		*linkedValue = v0;
+		editing = false;
+	}
+
 
 };
