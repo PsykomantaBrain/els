@@ -100,7 +100,7 @@ struct SpdPage : Page
 		}
 				
 		// update speed command from handwheel
-		motorPPSCmd = hdwhlCount - hdWhl0;		
+		motorPPSCmd = (hdwhlCount - hdWhl0) * 10;		
 
 
 

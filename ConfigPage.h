@@ -46,11 +46,6 @@ struct CfgPage : Page
 				v0 = motorStepsPerRev;
 				drawOnce();
 			}
-			else
-			{
-				// commit the new value
-				motorStepsPerRev = hdw0 + hdwhlCount;
-			}
 			return;
 		}
 		if (btns & 0x0004)
@@ -82,7 +77,7 @@ struct CfgPage : Page
 				return;
 			}
 
-			int newVal = hdw0 + hdwhlCount;
+			int newVal = (hdw0 + hdwhlCount) * 10; // 10-step increments (could be 100 for this)
 			if (newVal != motorStepsPerRev)
 			{
 				motorStepsPerRev = newVal;				
