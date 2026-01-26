@@ -5,6 +5,7 @@
 */
 #pragma once
 
+#include <EEPROM.h>
 #include <AVRStepperPins.h>
 #include <FastAccelStepper.h>
 #include <Log2Representation.h>
@@ -188,11 +189,18 @@ void setup()
 {
 	// init usb serial for controlling
 	Serial.begin(115200);
-	//motor.setMinPulseWidth(60); // set step pulse width to 600us
-	//motor.setPinsInverted(false, true, false);
-	//motor.setMaxSpeed(4000); // set max speed
-	//motor.setAcceleration(100); // set acceleration
-	//motor.stop();
+
+	// zero button needs to be set early because we're reading it to decide whether to load config from eeprom
+	pinMode(BTNZRO, INPUT_PULLUP);
+
+	delay(200);
+
+	// load config from eeprom (if not holding zero button)
+	EEPROM.begin(512);
+	if (digitalRead(BTNZRO) == HIGH)
+		loadConfigFromEEPROM();
+	else
+		Serial.println("Skipping config load from EEPROM (ZERO button held)");
 
 	// just for now, read spindle encoder with interrupts.
 	// later the idea is to use PCNT hardware peripheral for this
@@ -209,7 +217,7 @@ void setup()
 	lcd.init();	
 	lcd.backlight();
 	lcd.setBacklight(64);	
-	delay(1000);	
+	delay(800);	
 	addLCDCustomChars(lcd);		
 
 
@@ -237,8 +245,6 @@ void setup()
 	delay(500);
 
 	// buttons
-	pinMode(BTNZRO, INPUT_PULLUP);
-
 	pinMode(BTN1, INPUT_PULLUP);
 	pinMode(BTN2, INPUT_PULLUP);
 	pinMode(BTN3, INPUT_PULLUP);

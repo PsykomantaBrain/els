@@ -124,14 +124,32 @@ struct SpdPage : Page
 		}
 		if (btns & 0x0100) // ZERO
 		{
+			int sf = selField; // remember selected field to restore after zeroing
 			setEV(-1);
 
 			evPPScmd.setValue(0);
 			evRPScmd.setValue(0);
 			evRPMcmd.setValue(0);
+
+			if (sf > -1)
+				setEV(sf); 
 		}
 
-		Page::pageUpdate(btns);
+
+		if (btns & 0x0020) // DIR btn - flip directions
+		{
+			if (evEditing && !btnStop.IsArmed()) // not while running. 
+			{
+				evEditing->commitEdit();
+				evEditing->setValue(-evEditing->getValue());
+				evEditing->beginEdit(hdwhlCount);
+				motorDirection = -1; // force value update below
+			}			
+		}
+		else
+		{
+			Page::pageUpdate(btns);
+		}
 
 		// update related values (PPS/RPM/RPS)
 		if (evEditing == &evPPScmd)
@@ -152,7 +170,7 @@ struct SpdPage : Page
 
 
 
-		if (sign(evPPScmd.getValue()) != (sign(motorDirection) + 1))
+		if (sign(evPPScmd.getValue()) + 1 != motorDirection)
 		{
 			motorDirection = sign(evPPScmd.getValue()) + 1;
 		}		

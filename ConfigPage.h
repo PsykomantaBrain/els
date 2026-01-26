@@ -1,8 +1,37 @@
 #pragma once
+#include <EEPROM.h> 
+
+
+void saveConfigToEEPROM()
+{
+	int bWritten = 0;
+	bWritten += EEPROM.writeInt(0, motorStepsPerRev);
+	bWritten += EEPROM.writeInt(4, spindlePulsesPerRev);
+	bWritten += EEPROM.writeInt(8, leadscrewPitchUM);
+	bWritten += EEPROM.writeInt(12, motorMaxAccel);
+	EEPROM.commit();
+
+
+	lcd.setCursor(0, 3);
+	lcd.print("Config Saved   w    ");
+	lcd.setCursor(15, 3);
+	lcd.print(bWritten);
+
+	Serial.println((String)"Config Saved, bytes written: " + bWritten);
+	delay(1000);
+}
+void loadConfigFromEEPROM()
+{
+	motorStepsPerRev = EEPROM.readInt(0);	
+	spindlePulsesPerRev = EEPROM.readInt(4);
+	leadscrewPitchUM = EEPROM.readInt(8);
+	motorMaxAccel = EEPROM.readInt(12);
+
+	Serial.println((String)"Config Loaded from EEPROM");
+}
 
 struct CfgPage : Page
 {
-
 	EditableValueInt evMoV = EditableValueInt(&motorStepsPerRev, "MoV", 1, 100);
 	EditableValueInt evSpV = EditableValueInt(&spindlePulsesPerRev, "SpV", 2, 100);
 	EditableValueInt evLsP = EditableValueInt(&leadscrewPitchUM, "LsP", 3, 100);
@@ -35,6 +64,8 @@ struct CfgPage : Page
 	void drawOnce() override
 	{
 		lcd.clear();		
+		lcd.setCursor(C_FIELD0, 0);
+		lcd.print("STR");
 
 		evAcc.drawCaption(lcd, C_FIELD1, 0);
 
@@ -58,13 +89,21 @@ struct CfgPage : Page
 
 	void pageUpdate(uint16_t btns) override
 	{
-
+		if (btns & 0x0010) // SK4 - save settings to eeprom
+		{
+			saveConfigToEEPROM();
+			drawOnce();
+			return;
+		}
 
 
 		Page::pageUpdate(btns);
 
 	}
 
+
+
 };
 CfgPage cfgPage;
+
 
