@@ -25,7 +25,7 @@ bool stepperSetup(uint8_t resolution = 8)
 	else 
 	{
 		stepper->setDirectionPin(MOTOR_PIN_DIR);				
-		stepper->setAcceleration(1000);
+		stepper->setAcceleration(5000);
 		stepper->setAutoEnable(true);
 		
 	}
@@ -58,6 +58,7 @@ uint32_t stepperRunPPS(float stepsPerSecond)
 	}
 
 	bool ok = stepper->setSpeedInHz((uint32_t)stepsPerSecond) == 0;
+	ok &= stepper->setAcceleration(motorMaxAccel) == 0;
 	if (!ok)
 	{
 		return 0;

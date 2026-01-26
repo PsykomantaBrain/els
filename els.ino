@@ -67,8 +67,6 @@
 #include <LiquidCrystal_I2C.h>
 
 
-//#include "LedcStepperCtrl.h"
-#include "FastAccelStepperCtrl.h"
 
 
 // config params -------------------------------
@@ -79,8 +77,11 @@ int btnsState = 0; // current button states bitmask
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
 int leadscrewPitchUM = 2000;      // lead screw pitch in µm/rev
+int motorMaxAccel = 1000;      // max acceleration for the stepper motor in steps/s²
 
 
+//#include "LedcStepperCtrl.h"
+#include "FastAccelStepperCtrl.h"
 
 
 // device state variables  -------------------------------
@@ -108,6 +109,9 @@ ArmingButton btnStop(BTNSTP, LEDSTP);
 ArmingButton btnRun(BTNRUN, LEDRUN);
 
 
+// fwd declares
+void goToPage(int);
+
 #include "Page.h"
 
 
@@ -118,8 +122,6 @@ PageValueInt pvBtns = PageValueInt(4, &btnsState);
 Page* currentPage = nullptr;
 
 
-// fwd declares
-void goToPage(int);
 
 
 

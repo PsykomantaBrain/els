@@ -131,41 +131,6 @@ struct SpdPage : Page
 			evRPMcmd.setValue(0);
 		}
 
-		if (btns != 0 && btns < 0x0100) // handle buttons 1-8 first
-		{
-			switch (btns)
-			{
-			default:
-				setEV(-1);
-				break;
-
-			case 0x0001: // SK1 RTN				
-				goToPage(0);
-
-				return;
-
-			case 0x0002: // SK2 PPS 
-				setEV(1);
-				break;
-
-			case 0x0004: // SK3 RPM
-				setEV(2);
-				break;
-
-			case 0x0008: // SK4 RPS
-				setEV(3);
-				break;
-
-				// case 0x0010: // SK4
-				// case 0x0020: // SK5
-				// case 0x0040: // SK6
-				// case 0x0080: // SK7
-			}
-			drawOnce();
-			return;
-		}
-				
-
 		Page::pageUpdate(btns);
 
 		// update related values (PPS/RPM/RPS)
