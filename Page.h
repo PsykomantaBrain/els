@@ -9,6 +9,83 @@
 #define C_FIELD3 15//6789
 
 
+struct EditableValueInt
+{
+	String caption;
+	int vIndex = -1;
+
+	int* value = 0;
+	int step = 1;
+
+	int v0, hdwl0;
+	
+	bool editing;
+
+	EditableValueInt(int* linkedValue, String cap, int vIndex, int step = 1)
+	{
+		caption = cap;
+		this->vIndex = vIndex;
+
+		this->value = linkedValue;
+		this->v0 = *linkedValue;
+
+		this->step = step;
+	}
+
+	void beginEdit(int hdwl)
+	{
+		if (editing)
+			return;
+
+		hdwl0 = hdwl;
+		v0 = *value;
+		editing = true;
+	}
+
+	void updateEdit(int hdwl)
+	{
+		if (!editing)
+			return;
+
+		*value = v0 + ((hdwl - hdwl0) * step);
+	}
+
+	void commitEdit()
+	{
+		if (!editing)
+			return;
+		editing = false;
+	}
+	void cancelEdit()
+	{
+		if (!editing)
+			return;
+
+		*value = v0;
+		editing = false;
+	}
+
+	void setValue(int v)
+	{
+		*value = v;
+	}
+	int getValue()
+	{
+		return *value;
+	}
+
+
+	void drawCaption(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+	{
+		lcd.setCursor(col, row);
+		if (editing)
+			lcd.print("\003" + caption + "\002");
+		else
+			lcd.print(" " + caption + " ");
+	}
+};
+
+
 
 struct PageValueInt
 {
@@ -36,7 +113,9 @@ public:
 		snprintf(buffer, sizeof(buffer), "%0*d", length, *linkedValue);
 		lcd.print(buffer);
 	}
+
 };
+
 
 struct PageValueStr
 {
@@ -101,65 +180,71 @@ public:
 
 struct Page
 {
+	int selField = 0;
+	int hdw0, v0;
+	
+	
 	virtual ~Page() {}
 
-	virtual void enterPage() {}
+
+
+	virtual void enterPage()
+	{
+		selField = -1;
+		evEditing = nullptr;
+	}
 
 
 	virtual void drawOnce() = 0;
 
 	virtual void drawLoop() = 0;
 
-	virtual void pageUpdate(uint16_t btns) {}
+	virtual void pageUpdate(uint16_t btns) 
+	{
+		if (evEditing != nullptr)
+			evEditing->updateEdit(hdwhlCount);
+	}
 
-	virtual void exitPage() {}
 
+	virtual void exitPage() 
+	{
+		setEV(-1);
+	}
+
+
+
+	virtual EditableValueInt* getEvAtField(int index)
+	{
+		return nullptr;
+	}
+
+
+	EditableValueInt* evEditing = nullptr;
+	void setEV(int sel)
+	{
+		if (evEditing != nullptr)
+		{
+			if (selField == sel)
+			{
+				evEditing->commitEdit();
+				sel = -1;
+			}
+			else
+			{
+				evEditing->cancelEdit();
+			}
+		}
+
+
+		evEditing = getEvAtField(sel);
+		selField = sel;
+
+		if (evEditing != nullptr)
+		{
+			evEditing->beginEdit(hdwhlCount);
+		}
+
+		drawOnce();
+	}
 };
 
-
-struct EditableValueInt
-{
-
-	volatile int* linkedValue = nullptr;
-	int step = 1;
-
-	int v0, hdwl0;
-	int vDisplay;
-
-	bool editing;
-
-	EditableValueInt(volatile int* val, int s)
-	{
-		linkedValue = val;
-		step = s;
-
-		v0 = *linkedValue;
-		vDisplay = v0;
-	}
-
-	void beginEdit(int hdwl)
-	{
-		hdwl0 = hdwl;
-		v0 = *linkedValue;
-		vDisplay = v0;
-		editing = true;
-	}
-	
-	void updateEdit(int hdwl)
-	{
-		vDisplay = v0 + ((hdwl - hdwl0)*step);
-	}
-
-	void commitEdit()
-	{
-		*linkedValue = vDisplay;
-		editing = false;
-	}
-	void cancelEdit()
-	{
-		*linkedValue = v0;
-		editing = false;
-	}
-
-
-};

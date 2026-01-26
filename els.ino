@@ -78,7 +78,7 @@ int btnsState = 0; // current button states bitmask
 
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
-int leadscrewPitchMM = 2;      // lead screw pitch in mm/rev
+int leadscrewPitchUM = 2000;      // lead screw pitch in µm/rev
 
 
 
@@ -113,8 +113,6 @@ ArmingButton btnRun(BTNRUN, LEDRUN);
 
 PageValueInt pvHdWhl = PageValueInt(4, &hdwhlCount);
 PageValueInt pvSpndl = PageValueInt(4, &spndlCount);
-PageValueInt pvMoV = PageValueInt(4, &motorStepsPerRev);
-
 PageValueInt pvBtns = PageValueInt(4, &btnsState);
 
 Page* currentPage = nullptr;
@@ -222,17 +220,16 @@ void setup()
 	delay(1000);
 
 
-	const uint8_t ledcRes = 16; // ledc resolution bits
-	lcd.print(ledcRes); 
+	const uint8_t ledcRes = 16; // ledc resolution bits	
 	if (stepperSetup(ledcRes))
 	{
 		lcd.print("OK");
-		Serial.println((String)"Stepper Config Ok ("+ ledcRes +(String)"bit LEDC)");
+		Serial.println((String)"Stepper Config Ok");
 	}
 	else
 	{
 		lcd.print(" STPPR FAIL");
-		Serial.println((String)"Stepper Config FAILED ("+ ledcRes +(String)"bit LEDC)");
+		Serial.println((String)"Stepper Config FAILED");
 	}
 
 	delay(500);

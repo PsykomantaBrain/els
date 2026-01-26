@@ -5,24 +5,48 @@
 struct SpdPage : Page
 {
 
-	int motorPPSCmd = 0;
-	int motorPPSSet = 0;
-	int motorDirection = 1; // 0=REV, 1 = STP, 2=REV
-	int hdWhl0;
+	int cmdPPS = 0;
+	int cmdRPS = 0;
+	int cmdRPM = 0;
+	EditableValueInt evPPScmd = EditableValueInt(&cmdPPS, "PPS", 1, 10);
+	EditableValueInt evRPScmd = EditableValueInt(&cmdRPS, "RPS", 2, 1);
+	EditableValueInt evRPMcmd = EditableValueInt(&cmdRPM, "RPM", 3, 10);
+	PageValueInt pvPPSCmd = PageValueInt(4, evPPScmd.value);
+	PageValueInt pvRPSCmd = PageValueInt(4, evRPScmd.value);
+	PageValueInt pvRPMCmd = PageValueInt(4, evRPMcmd.value);
 
-	PageValueInt pvCmdSpeed = PageValueInt(4, &motorPPSCmd);
+
+	int motorPPSSet = 0;
 	PageValueInt pvSetSpeed = PageValueInt(4, &motorPPSSet);
 
+	int motorDirection = 1; // 0=REV, 1 = STP, 2=REV
 	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "REV STOP FWD" );
 
-	void enterPage() override
+
+	EditableValueInt* getEvAtField(int index) override
 	{
-		hdWhl0 = hdwhlCount;
+		switch (index)
+		{
+		case 1:
+			return &evPPScmd;
+		case 2:
+			return &evRPScmd;
+		case 3:
+			return &evRPMcmd;
+		default:
+			return nullptr;
+		}
+	}
 
-		motorPPSCmd = 0;		
+	void enterPage() override
+	{		
+		Page::enterPage();
+						
+		evPPScmd.setValue(0);
+		evRPScmd.setValue(0);
+		evRPMcmd.setValue(0);
+
 		motorDirection = 1; // stop
-
-
 	}
 	
 
@@ -39,18 +63,24 @@ struct SpdPage : Page
 		// l2
 
 		// l3
-		lcd.setCursor(0, 3);
-		lcd.print("\003SPD\002 PPS  rps  rpm ");
+		//lcd.setCursor(0, 3);
+		//lcd.print("\003SPD\002 pps  rps  rpm ");
+
+		evPPScmd.drawCaption(lcd, C_FIELD1, 3);
+		evRPScmd.drawCaption(lcd, C_FIELD2, 3);
+		evRPMcmd.drawCaption(lcd, C_FIELD3, 3);
 	}
 	void drawLoop() override
 	{
 		motorPPSSet = stepperGetCurrentPulseRate();
-
 		pvSetSpeed.drawAt(lcd, C_FIELD0, 1);
+
 		pvDir.drawAt(lcd, C_FIELD1, 1);
 
 
-		pvCmdSpeed.drawAt(lcd, C_FIELD1, 2);
+		pvPPSCmd.drawAt(lcd, C_FIELD1, 2);
+		pvRPSCmd.drawAt(lcd, C_FIELD2, 2);
+		pvRPMCmd.drawAt(lcd, C_FIELD3, 2);
 	}
 
 
@@ -58,9 +88,9 @@ struct SpdPage : Page
 	void onRunPressed()
 	{
 		// start motor at current speed setting
-		if (motorPPSCmd != 0)
+		if (evPPScmd.getValue() != 0)
 		{
-			motorPPSSet = stepperRunPPS((float)motorPPSCmd);
+			motorPPSSet = stepperRunPPS((float)*evPPScmd.value);
 
 			// disarm run button
 			btnRun.disarm();
@@ -92,33 +122,86 @@ struct SpdPage : Page
 			onStopPressed();
 			return;
 		}
-
 		if (btns & 0x0100) // ZERO
 		{
-			hdWhl0 = hdwhlCount;
-			motorPPSCmd = 0;
+			setEV(-1);
+
+			evPPScmd.setValue(0);
+			evRPScmd.setValue(0);
+			evRPMcmd.setValue(0);
+		}
+
+		if (btns != 0 && btns < 0x0100) // handle buttons 1-8 first
+		{
+			switch (btns)
+			{
+			default:
+				setEV(-1);
+				break;
+
+			case 0x0001: // SK1 RTN				
+				goToPage(0);
+
+				return;
+
+			case 0x0002: // SK2 PPS 
+				setEV(1);
+				break;
+
+			case 0x0004: // SK3 RPM
+				setEV(2);
+				break;
+
+			case 0x0008: // SK4 RPS
+				setEV(3);
+				break;
+
+				// case 0x0010: // SK4
+				// case 0x0020: // SK5
+				// case 0x0040: // SK6
+				// case 0x0080: // SK7
+			}
+			drawOnce();
+			return;
 		}
 				
-		// update speed command from handwheel
-		motorPPSCmd = (hdwhlCount - hdWhl0) * 10;		
 
+		Page::pageUpdate(btns);
 
-
-		if (sign(motorPPSCmd) != (sign(motorDirection) + 1))
+		// update related values (PPS/RPM/RPS)
+		if (evEditing == &evPPScmd)
 		{
-			motorDirection = sign(motorPPSCmd) + 1;
+			evRPScmd.setValue(evPPScmd.getValue() / motorStepsPerRev);
+			evRPMcmd.setValue((evPPScmd.getValue() * 128 / motorStepsPerRev) * 60 / 128);
+		}
+		else if (evEditing == &evRPScmd)
+		{
+			evPPScmd.setValue(evRPScmd.getValue() * motorStepsPerRev);
+			evRPMcmd.setValue(evRPScmd.getValue() * 60);
+		}
+		else if (evEditing == &evRPMcmd)
+		{
+			evRPScmd.setValue(evRPMcmd.getValue() / 60);
+			evPPScmd.setValue((evRPMcmd.getValue() * 128 / 60) * motorStepsPerRev / 128);
+		}
+
+
+
+		if (sign(evPPScmd.getValue()) != (sign(motorDirection) + 1))
+		{
+			motorDirection = sign(evPPScmd.getValue()) + 1;
 		}		
 		// while running, allow realtime speed changes
 		if (btnStop.IsArmed())
 		{
-			motorPPSSet = stepperRunPPS((float)motorPPSCmd);
+			motorPPSSet = stepperRunPPS((float)evPPScmd.getValue());
 		}
 		else
 		{
 			// while not running, arm/disarm RUN button based whether speed command is non-zero
-			if ((fabsf(motorPPSCmd) >= 10) != btnRun.IsArmed())
+			if ((fabsf(evPPScmd.getValue()) >= 10) != btnRun.IsArmed())
 			{
-				if (fabsf(motorPPSCmd) >= 10)
+				if (fabsf(evPPScmd.getValue()) >= 10)
 					btnRun.arm();
 				else
 					btnRun.disarm();
@@ -129,10 +212,16 @@ struct SpdPage : Page
 	}
 	void exitPage() override
 	{
+
+		evPPScmd.setValue(0);
+		evRPScmd.setValue(0);
+		evRPMcmd.setValue(0);
 		stepperStop();
 
 		btnRun.disarm();
 		btnStop.disarm();
+
+		Page::exitPage();
 	}
 };
 SpdPage spdPage;
