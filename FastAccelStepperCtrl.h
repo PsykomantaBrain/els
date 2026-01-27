@@ -91,3 +91,9 @@ uint32_t stepperRunRPM(float rpm, int stepsPerRev)
 	float revsPerSecond = rpm / 60.0f;
 	return stepperRunRPS(revsPerSecond, stepsPerRev);
 }
+
+
+void stepperMove(int tgt)
+{ 
+	stepper->moveTo(tgt);
+}

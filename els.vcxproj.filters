@@ -56,5 +56,8 @@
     <ClInclude Include="FastAccelStepperCtrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CoupledRun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
