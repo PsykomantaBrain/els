@@ -19,7 +19,7 @@ struct SpdPage : Page
 	int motorPPSSet = 0;
 	PageValueInt pvSetSpeed = PageValueInt(4, &motorPPSSet);
 
-	int motorDirection = 1; // 0=REV, 1 = STP, 2=REV
+	int motorDirection = 1; // 0=REV, 1 = STP, 2=FWD
 	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "REV STOP FWD" );
 
 
@@ -107,11 +107,7 @@ struct SpdPage : Page
 
 	void pageUpdate(uint16_t btns) override
 	{		
-		if ((btns & 0x0001) && !btnStop.IsArmed())
-		{
-			goToPage(0);
-			return;
-		}
+		
 		if (btns & 0x1000) // RUN
 		{
 			onRunPressed();
@@ -146,7 +142,7 @@ struct SpdPage : Page
 				motorDirection = -1; // force value update below
 			}			
 		}
-		else
+		else // default behaviour for other buttons
 		{
 			Page::pageUpdate(btns);
 		}

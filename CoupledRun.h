@@ -40,7 +40,7 @@ public:
 
 
 
-struct CoupledRunF32
+class CoupledRunF32
 {
 public:
 	int s0, sLast;
@@ -51,18 +51,18 @@ public:
 	float eAvg = 0.999f;
 	float vAvg = 0.0f;
 
-	CoupledRunF32(int spndlEnc, int motorCount, int pN, int pD)
+	CoupledRunF32(int spndlEnc, int motorCount, float pitch)
 	{
 		s0 = spndlEnc;
 		sLast = spndlEnc;
 		
 
 		m0 = motorCount;
-		K = ((float)pN * motorStepsPerRev) / ((float)pD * leadscrewPitchUM * spindlePulsesPerRev);
+		K = (pitch * motorStepsPerRev) / ((float)leadscrewPitchUM * spindlePulsesPerRev);
 	}
 
 
-	int getTargetMotorCount(int spndlEnc, ulong dtMicros)
+	int getTargetMotorCount(int spndlEnc)
 	{
 		int sd = (spndlEnc - s0);
 		int motorSteps = m0 + (int)(sd * K);
