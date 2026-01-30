@@ -32,10 +32,10 @@ void loadConfigFromEEPROM()
 
 struct CfgPage : Page
 {
-	EditableValueInt evMoV = EditableValueInt(&motorStepsPerRev, "MoV", 1, 100);
-	EditableValueInt evSpV = EditableValueInt(&spindlePulsesPerRev, "SpV", 2, 100);
-	EditableValueInt evLsP = EditableValueInt(&leadscrewPitchUM, "LsP", 3, 100);
-	EditableValueInt evAcc = EditableValueInt(&motorMaxAccel, "Acc", 5, 10);
+	EditableValueInt evMoV = EditableValueInt(&motorStepsPerRev, "MoV", 1, 25);
+	EditableValueInt evSpV = EditableValueInt(&spindlePulsesPerRev, "SpV", 2, 25);
+	EditableValueInt evLsP = EditableValueInt(&leadscrewPitchUM, "LsP", 3, 25);
+	EditableValueInt evAcc = EditableValueInt(&motorMaxAccel, "Acc", 5, 100);
 
 
 	PageValueInt pvMoV = PageValueInt(4, evMoV.value);

@@ -110,7 +110,7 @@ public:
 		lcd.setCursor(col, row);
 		// draw value with leading zeros to fill length
 
-		snprintf(buffer, sizeof(buffer), "%0*d", length, *linkedValue);
+		snprintf(buffer, length +1, "%0*d", length, *linkedValue);
 		lcd.print(buffer);
 	}
 

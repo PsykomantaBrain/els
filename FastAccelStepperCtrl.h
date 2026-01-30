@@ -93,7 +93,22 @@ uint32_t stepperRunRPM(float rpm, int stepsPerRev)
 }
 
 
-void stepperMove(int tgt)
+bool stepperMoveToTgt(int tgt, uint32_t speedHz)
 { 
-	stepper->moveTo(tgt);
+	bool ok = stepper->setSpeedInHz(speedHz) == 0;
+	ok &= stepper->setAcceleration(motorMaxAccel) == 0;
+		
+	if (ok)
+	{
+		MoveResultCode mrc = stepper->moveTo(tgt);
+		if (mrc == MoveResultCode::OK)
+			return true;
+		else
+		{
+			// print error to serial
+			Serial.print("stepperMoveToTgt failed: ");
+			Serial.println(toString(mrc));
+			return false;
+		}
+	}
 }

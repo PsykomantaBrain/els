@@ -16,7 +16,7 @@ public:
 
 	int mRemain = 0; // for accumulating fractional steps
 
-	CoupledRunI32(int spndlEnc, int motorCount, int pN, int pD)
+	void beginRun(int spndlEnc, int motorCount, int pN, int pD)
 	{
 		s0 = spndlEnc;
 		m0 = motorCount;
@@ -27,6 +27,8 @@ public:
 
 	int getTargetMotorCount(int spndlEnc)
 	{
+		if (pitchN == 0)
+			return m0;
 						
 		int sd = (spndlEnc - s0);
 		int motorSteps = m0 + (sd * pitchN / pitchD);
@@ -36,50 +38,83 @@ public:
 
 		return motorSteps;
 	}
+
+	void endRun()
+	{
+		pitchN = 0;
+		pitchD = 1;
+		mRemain = 0;
+	}
 };
 
 
 
-class CoupledRunF32
+struct CoupledRunF32
 {
 public:
 	int s0, sLast;
 	int m0;
-		
+
 	float K; // coupling ratio: motor steps per spindle encoder pulse
 
 	float eAvg = 0.999f;
 	float vAvg = 0.0f;
 
-	CoupledRunF32(int spndlEnc, int motorCount, float pitch)
+	bool running = false;
+
+	bool isRunning()
+	{
+		return running;
+	}
+
+	void beginRun(int spndlEnc, int motorCount, float pitch)
 	{
 		s0 = spndlEnc;
 		sLast = spndlEnc;
-		
+
 
 		m0 = motorCount;
-		K = (pitch * motorStepsPerRev) / ((float)leadscrewPitchUM * spindlePulsesPerRev);
-	}
+		K = pitch;
 
+		running = true;
+		//Serial.println((String)"CoupledRunF32 begin: K=" + K + " s0=" + s0 + " m0=" + m0);
+	}
 
 	int getTargetMotorCount(int spndlEnc)
 	{
-		int sd = (spndlEnc - s0);
-		int motorSteps = m0 + (int)(sd * K);
-		
+		if (K == 0.0f)
+			return m0;
+
+		float sd = (spndlEnc - s0);
+		float sRevs = sd / (float)spindlePulsesPerRev;
+		float ldsRevs = sRevs * (K / (float)leadscrewPitchUM);
+
+		int motorSteps = m0 + (int)(ldsRevs * motorStepsPerRev);
+
 		return motorSteps;
 	}
 
 	float updStepperSpeed(int spndlEnc, ulong dtMicros)
 	{
+		if (K == 0.0f || dtMicros == 0)
+			return 0.0f;
+
 		// velocity diff
-		float vel = (float)((spndlEnc - sLast) * K) / dtMicros; 
+		float vel = (float)((spndlEnc - sLast) * K) / dtMicros;
 		sLast = spndlEnc;
 
-		
+
 		// EMA velocity diff
 		vAvg += eAvg * (vel - vAvg);
 
 		return vAvg;
 	}
+
+	void endRun()
+	{
+		K = 0.0f;
+		vAvg = 0.0f;
+		running = false;
+	}
+	
 };
