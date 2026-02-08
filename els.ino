@@ -34,25 +34,25 @@
 
 // USER INPUTS -------------------------------
 
+
 // buttons
-#define BTNZRO 32 // zeroing button
-
-#define BTNRUN 14 // run button
-#define LEDRUN 12 // run led
-#define BTNSTP 23 // stop button
-#define LEDSTP 13 // stop led
-
+#define BTNZRO 25 // zeroing button OK
+#define BTNRUN 26 // run button		OK
+#define LEDRUN 27 // run led		OK
+#define BTNSTP 12 // stop button	OK
+#define LEDSTP 14 // stop led		OK
 
 
-#define BTN1 27 // SK 1
-#define BTN2 26 // SK 2
-#define BTN3 25 // SK 3
-#define BTN4 33 // SK 4
 
-#define BTN5 16 // SK 5
-#define BTN6 17 // SK 6
-#define BTN7 39 // SK 7
-#define BTN8 36 // SK 8
+#define BTN1 23 // SK 1
+#define BTN2 32 // SK 2 OK
+#define BTN3 33 // SK 3 OK
+#define BTN4 13 // SK 4
+
+#define BTN5 17 // SK 5 OK
+#define BTN6 16 // SK 6
+#define BTN7 36 // SK 7
+#define BTN8 39 // SK 8
 
 // rotary handwheel pins (RTR0)
 #define RTR0_A 18
@@ -77,8 +77,8 @@ int btnsState = 0; // current button states bitmask
 
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
-int leadscrewPitchUM = 2000;      // lead screw pitch in µm/rev
-int motorMaxAccel = 1000;      // max acceleration for the stepper motor in steps/s²
+int leadscrewPitchUM = 2000;      // lead screw pitch in ï¿½m/rev
+int motorMaxAccel = 1000;      // max acceleration for the stepper motor in steps/sï¿½
 
 
 //#include "LedcStepperCtrl.h"
@@ -115,6 +115,8 @@ void goToPage(int);
 
 #include "Page.h"
 
+int stepperCurrentPos;
+PageValueInt pvMpos = PageValueInt(4, &stepperCurrentPos);
 
 PageValueInt pvHdWhl = PageValueInt(4, &hdwhlCount);
 PageValueInt pvSpndl = PageValueInt(4, &spndlCount);
@@ -137,6 +139,7 @@ String LabelAct(String label, bool act)
 #include "ConfigPage.h"
 #include "ThreadingPage.h"
 #include "SpeedPage.h"
+// TO DO: add jog page (digital carriage handwheel mode - ie, coupled run to handwheel instead of spindle)
 
 
 
@@ -204,8 +207,8 @@ void setup()
 
 	// just for now, read spindle encoder with interrupts.
 	// later the idea is to use PCNT hardware peripheral for this
-	pinMode(SPNDL_ROT_A, INPUT_PULLUP);
-	pinMode(SPNDL_ROT_B, INPUT_PULLUP);
+	pinMode(SPNDL_ROT_A, INPUT);
+	pinMode(SPNDL_ROT_B, INPUT);
 	attachInterrupt(digitalPinToInterrupt(SPNDL_ROT_A), interrupt_SPNDL, RISING);
 
 
@@ -275,6 +278,8 @@ void loop()
 	// Handle serial data if there is anything in the buffer. 
 	handleSerial();
 	
+	// update global state variables (that need updating)
+	stepperCurrentPos = stepper->getCurrentPosition();
 
 	
 	currentPage->drawLoop();

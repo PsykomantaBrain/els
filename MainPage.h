@@ -22,10 +22,10 @@ struct MainPage : Page
 		lcd.print(" ...  ...  ...  CFG ");
 
 		lcd.setCursor(0, 1);
-		lcd.print("SPNDL"); pvSpndl.drawAt(lcd, C_FIELD1, 1);
+		lcd.print("Spnd"); pvSpndl.drawAt(lcd, C_FIELD1, 1);
 
 		lcd.setCursor(0, 2);
-		lcd.print("HdWhl"); pvHdWhl.drawAt(lcd, C_FIELD1, 2);
+		lcd.print("HdWl"); pvHdWhl.drawAt(lcd, C_FIELD1, 2);
 
 		lcd.setCursor(0, 3);
 		lcd.print("      THR  SPD  ... ");

@@ -83,7 +83,7 @@ struct CfgPage : Page
 		pvLsP.drawAt(lcd, C_FIELD3, 2);
 
 
-		pvSpndl.drawAt(lcd, C_FIELD0, 3);
+		pvMpos.drawAt(lcd, C_FIELD0, 3);
 	}
 
 

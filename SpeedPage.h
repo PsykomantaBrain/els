@@ -81,6 +81,8 @@ struct SpdPage : Page
 		pvPPSCmd.drawAt(lcd, C_FIELD1, 2);
 		pvRPSCmd.drawAt(lcd, C_FIELD2, 2);
 		pvRPMCmd.drawAt(lcd, C_FIELD3, 2);
+
+		pvMpos.drawAt(lcd, C_FIELD0, 3);
 	}
 
 

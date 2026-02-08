@@ -74,7 +74,7 @@ public:
 
 
 		m0 = motorCount;
-		K = pitch;
+		K = pitch / (float)leadscrewPitchUM;
 
 		running = true;
 		//Serial.println((String)"CoupledRunF32 begin: K=" + K + " s0=" + s0 + " m0=" + m0);
@@ -87,7 +87,7 @@ public:
 
 		float sd = (spndlEnc - s0);
 		float sRevs = sd / (float)spindlePulsesPerRev;
-		float ldsRevs = sRevs * (K / (float)leadscrewPitchUM);
+		float ldsRevs = sRevs * K;
 
 		int motorSteps = m0 + (int)(ldsRevs * motorStepsPerRev);
 

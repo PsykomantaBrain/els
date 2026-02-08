@@ -15,6 +15,28 @@ struct ThreadingPage : Page
 	int motorDirection = 2; // 0=REV, 1 = STP, 2=FWD
 	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "L///STOPR\\\\\\");
 
+
+	// location (motor position) of endstop (to automatically disengage the run)
+	// this is relative to the 0 position where the run started (there's no closed loop position input here... yet)
+	// so it's more of a 'stop-after-this-much-travel' limit
+	int endStop = 0;
+	EditableValueInt evEndstop = EditableValueInt(&endStop, "END", 7, 10);
+	PageValueInt pvEndstop = PageValueInt(4, evEndstop.value);
+
+	// later, a 'return to zero' function can be added here to jog back to the stored zero point automatically
+	
+	// note that both EndStop and Home positions (which require disengaging) add the need for a synced cut-in feature.
+	// if we disengage the run, it's the same as disengaging the halfnut. We lose our position along the thread.
+	// we can add a synced cut-in that waits for the spindle to reach the next index pulse (or multiple of its pulseCount) before re-engaging the run.
+
+	// alternatively, the lathe spindle does have a magnet on it for the builtin tach. We can add a hall sensor to read that and get an index event with an interrupt on the rising edge of that.
+	// assuming we even have an input pin remaining (we don't, unless we want to mess around with D15)
+
+	// Without an interrupt, what we can do is begin the run with a starting spindle position ahead of the current one.
+	// copilot: eg, if we're at spindle encoder count 1234 when we start the run, we can set s0 to 1234 + spindlePulsesPerRev - (1234 % spindlePulsesPerRev)
+	// We then set up the run logic to stay at motor zero until the current spindle pos moves past s0 (given the set direction)
+	// It's a bit annoying because it's a bunch of stateful logic to add, but it would work.
+
 	int motorTarget = 0;
 	PageValueInt pvMot = PageValueInt(4, &motorTarget);
 
@@ -62,7 +84,7 @@ struct ThreadingPage : Page
 
 		pvMot.drawAt(lcd, C_FIELD3, 2);
 
-		pvSpndl.drawAt(lcd, C_FIELD0, 3);
+		pvMpos.drawAt(lcd, C_FIELD0, 3);
 
 	}
 
@@ -140,9 +162,7 @@ struct ThreadingPage : Page
 		{
 			if ((float)pitchUm != coupledRun.K)
 			{
-				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)
-				coupledRun.endRun();
-				coupledRun.K = (float)pitchUm;
+				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)				
 				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);
 			}
 
