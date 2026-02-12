@@ -187,6 +187,7 @@ void goToPage(int iPage)
 
 #include "SerialComms.h"
 
+#include "PCNT_handwheel.h"
 
 void setup() 
 {
@@ -261,10 +262,15 @@ void setup()
 
 
 	// handwheel rotary inputs 
-	pinMode(RTR0_A, INPUT_PULLUP);
-	pinMode(RTR0_B, INPUT_PULLUP);
-	attachInterrupt(digitalPinToInterrupt(RTR0_A), interrupt_ROT0, RISING);
+	//pinMode(RTR0_A, INPUT_PULLUP);
+	//pinMode(RTR0_B, INPUT_PULLUP);
+	//attachInterrupt(digitalPinToInterrupt(RTR0_A), interrupt_ROT0, RISING);
 
+	// read handwheel with PCNT hardware peripheral 
+	setup_handwheel_pcnt();
+
+	
+	
 
 	delay(500);
 	setPage(&mainPage);
@@ -281,6 +287,7 @@ void loop()
 	// update global state variables (that need updating)
 	stepperCurrentPos = stepper->getCurrentPosition();
 
+	hdwhlCount = read_handwheel();
 	
 	currentPage->drawLoop();
 
@@ -337,18 +344,18 @@ void loop()
 
 
 
-void IRAM_ATTR interrupt_ROT0()
-{	
-	// SAP impl, this interrupts on A rising edge, so state of B determines direction	
-	if (digitalRead(RTR0_B))
-	{
-		hdwhlCount++;
-	}
-	else
-	{
-		hdwhlCount--;		
-	}
-}
+//void IRAM_ATTR interrupt_ROT0()
+//{	
+//	// SAP impl, this interrupts on A rising edge, so state of B determines direction	
+//	if (digitalRead(RTR0_B))
+//	{
+//		hdwhlCount++;
+//	}
+//	else
+//	{
+//		hdwhlCount--;		
+//	}
+//}
 
 
 void IRAM_ATTR interrupt_SPNDL()
