@@ -59,8 +59,8 @@ struct SpdPage : Page
 		lcd.print("VSET DIR  ...  ... ");
 		
 		// l1
-		pvSpndl.drawAt(lcd, C_FIELD0, 1);
 		// l2
+		//pvSpndl.drawAt(lcd, C_FIELD1, 2);
 
 		// l3
 		//lcd.setCursor(0, 3);

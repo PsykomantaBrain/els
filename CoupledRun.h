@@ -77,7 +77,7 @@ public:
 		K = pitch / (float)leadscrewPitchUM;
 
 		running = true;
-		//Serial.println((String)"CoupledRunF32 begin: K=" + K + " s0=" + s0 + " m0=" + m0);
+		Serial.println((String)"CoupledRunF32 begin: K=" + K + " s0=" + s0 + " m0=" + m0);
 	}
 
 	int getTargetMotorCount(int spndlEnc)

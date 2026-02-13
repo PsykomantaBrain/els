@@ -62,5 +62,8 @@
     <ClInclude Include="PCNT_handwheel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PCNT_spindle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -8,12 +8,17 @@ struct ThreadingPage : Page
 	EditableValueInt evPitch = EditableValueInt(&pitchUm, "PCH", 5, 25);
 	PageValueInt pvPitch = PageValueInt(4, evPitch.value);
 
+
+	int cplAccel = 10000;
+	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 7, 250);
+	PageValueInt pvCplacc = PageValueInt(4, evCplacc.value);
+
 	int cplSpeed = 10000;
 	EditableValueInt evCplspd = EditableValueInt(&cplSpeed, "SPD", 7, 250);
 	PageValueInt pvCplspd = PageValueInt(4, evCplspd.value);
 
 	int motorDirection = 2; // 0=REV, 1 = STP, 2=FWD
-	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "L///STOPR\\\\\\");
+	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "L///STOPR<<<");
 
 
 	// location (motor position) of endstop (to automatically disengage the run)
@@ -46,7 +51,8 @@ struct ThreadingPage : Page
 	{
 		switch (index)
 		{
-
+		case 4:
+			return &evCplacc;
 		case 5:
 			return &evPitch;
 		case 7:
@@ -64,9 +70,11 @@ struct ThreadingPage : Page
 		lcd.clear();
 
 		// l0
-		lcd.print(" ...  pch  DIR  SPD ");
+		lcd.print(" ACC  pch  DIR  SPD ");
 		
+		evCplacc.drawCaption(lcd, C_FIELD0, 0);
 		evPitch.drawCaption(lcd, C_FIELD1, 0);
+
 		// DIR btn on field 2
 		evCplspd.drawCaption(lcd, C_FIELD3, 0);
 
@@ -78,10 +86,14 @@ struct ThreadingPage : Page
 	}
 	void drawLoop() override
 	{
+
+		pvCplacc.drawAt(lcd, C_FIELD0, 1);
 		pvPitch.drawAt(lcd, C_FIELD1, 1);
 		pvDir.drawAt(lcd, C_FIELD2, 1);
 		pvCplspd.drawAt(lcd, C_FIELD3, 1);
 
+
+		pvSpndl.drawAt(lcd, C_FIELD1, 2);
 		pvMot.drawAt(lcd, C_FIELD3, 2);
 
 		pvMpos.drawAt(lcd, C_FIELD0, 3);
@@ -107,8 +119,9 @@ struct ThreadingPage : Page
 			btnRun.disarm();
 			btnStop.arm();
 
-			coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);			
-			
+			stepper->setSpeedInHz(cplSpeed);
+			stepper->setAcceleration(cplAccel);
+			coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);						
 			
 		}
 	}
@@ -160,15 +173,17 @@ struct ThreadingPage : Page
 		
 		if (coupledRun.isRunning())
 		{
-			if ((float)pitchUm != coupledRun.K)
+			if (coupledRun.K != (float)pitchUm / (float)leadscrewPitchUM)
 			{
 				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)				
+				stepper->setSpeedInHz(cplSpeed);
+				stepper->setAcceleration(cplAccel);
 				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);
 			}
 
 
 			motorTarget = coupledRun.getTargetMotorCount(spndlCount);
-			stepperMoveToTgt(motorTarget, cplSpeed);
+			stepperMoveToTgt(motorTarget, cplSpeed, cplAccel);
 		}
 	}
 

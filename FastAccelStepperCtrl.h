@@ -93,13 +93,13 @@ uint32_t stepperRunRPM(float rpm, int stepsPerRev)
 }
 
 
-bool stepperMoveToTgt(int tgt, uint32_t speedHz)
+bool stepperMoveToTgt(int tgt, uint32_t speedHz, int accel)
 { 
-	bool ok = stepper->setSpeedInHz(speedHz) == 0;
-	ok &= stepper->setAcceleration(motorMaxAccel) == 0;
+	//bool ok = stepper->setSpeedInHz(speedHz) == 0;
+	//ok &= stepper->setAcceleration(accel) == 0;
 		
-	if (ok)
-	{
+	//if (ok)
+	//{
 		MoveResultCode mrc = stepper->moveTo(tgt);
 		if (mrc == MoveResultCode::OK)
 			return true;
@@ -110,5 +110,5 @@ bool stepperMoveToTgt(int tgt, uint32_t speedHz)
 			Serial.println(toString(mrc));
 			return false;
 		}
-	}
+	//}
 }

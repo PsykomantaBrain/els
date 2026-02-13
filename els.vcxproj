@@ -103,6 +103,7 @@
     <ClInclude Include="MainPage.h" />
     <ClInclude Include="Page.h" />
     <ClInclude Include="PCNT_handwheel.h" />
+    <ClInclude Include="PCNT_spindle.h" />
     <ClInclude Include="SerialComms.h" />
     <ClInclude Include="SpeedPage.h" />
     <ClInclude Include="ThreadingPage.h" />

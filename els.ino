@@ -188,6 +188,7 @@ void goToPage(int iPage)
 #include "SerialComms.h"
 
 #include "PCNT_handwheel.h"
+#include "PCNT_spindle.h"
 
 void setup() 
 {
@@ -208,9 +209,9 @@ void setup()
 
 	// just for now, read spindle encoder with interrupts.
 	// later the idea is to use PCNT hardware peripheral for this
-	pinMode(SPNDL_ROT_A, INPUT);
-	pinMode(SPNDL_ROT_B, INPUT);
-	attachInterrupt(digitalPinToInterrupt(SPNDL_ROT_A), interrupt_SPNDL, RISING);
+	//pinMode(SPNDL_ROT_A, INPUT);
+	//pinMode(SPNDL_ROT_B, INPUT);
+	//attachInterrupt(digitalPinToInterrupt(SPNDL_ROT_A), interrupt_SPNDL, RISING);
 
 
 
@@ -269,7 +270,9 @@ void setup()
 	// read handwheel with PCNT hardware peripheral 
 	setup_handwheel_pcnt();
 
-	
+	// spindle encoder with PCNT hardware peripheral
+	setup_spindle_pcnt();
+
 	
 
 	delay(500);
@@ -286,6 +289,7 @@ void loop()
 	
 	// update global state variables (that need updating)
 	stepperCurrentPos = stepper->getCurrentPosition();
+	spndlCount = read_spindle();
 
 	hdwhlCount = read_handwheel();
 	
@@ -358,15 +362,15 @@ void loop()
 //}
 
 
-void IRAM_ATTR interrupt_SPNDL()
-{
-	// SAP impl, this interrupts on A rising edge, so state of B determines direction	
-	if (digitalRead(SPNDL_ROT_B))
-	{
-		spndlCount++;
-	}
-	else
-	{
-		spndlCount--;
-	}
-}
+//void IRAM_ATTR interrupt_SPNDL()
+//{
+//	// SAP impl, this interrupts on A rising edge, so state of B determines direction	
+//	if (digitalRead(SPNDL_ROT_B))
+//	{
+//		spndlCount++;
+//	}
+//	else
+//	{
+//		spndlCount--;
+//	}
+//}
