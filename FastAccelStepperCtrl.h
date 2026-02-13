@@ -1,5 +1,6 @@
 #pragma once  
 #include <Arduino.h>  // Include the Arduino core library for ESP32 to define ledcSetup and related functions  
+#include <FastAccelStepper.h>
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper* stepper = nullptr;
@@ -16,8 +17,16 @@ bool stepperSetup(uint8_t resolution = 8)
 	pinMode(MOTOR_PIN_DIR, OUTPUT);
 	pinMode(MOTOR_PIN_STEP, OUTPUT);
 
-	engine.init();
+	engine.init(1);
+	engine.task_rate(10);
+
+	
+#if defined(SUPPORT_SELECT_DRIVER_TYPE)
+	stepper = engine.stepperConnectToPin(MOTOR_PIN_STEP, DRIVER_MCPWM_PCNT);
+#else
 	stepper = engine.stepperConnectToPin(MOTOR_PIN_STEP);
+#endif
+
 	if (stepper == nullptr) 
 	{
 		return false;
@@ -26,7 +35,8 @@ bool stepperSetup(uint8_t resolution = 8)
 	{
 		stepper->setDirectionPin(MOTOR_PIN_DIR);				
 		stepper->setAcceleration(5000);
-		stepper->setAutoEnable(true);
+		stepper->setAutoEnable(false);
+		stepper->enableOutputs(); // physical enable pin is manually controlled by a toggle. This can just stay on.
 		
 	}
 

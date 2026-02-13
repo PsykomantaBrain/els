@@ -74,7 +74,6 @@ struct ThreadingPage : Page
 		
 		evCplacc.drawCaption(lcd, C_FIELD0, 0);
 		evPitch.drawCaption(lcd, C_FIELD1, 0);
-
 		// DIR btn on field 2
 		evCplspd.drawCaption(lcd, C_FIELD3, 0);
 
@@ -122,13 +121,13 @@ struct ThreadingPage : Page
 			stepper->setSpeedInHz(cplSpeed);
 			stepper->setAcceleration(cplAccel);
 			coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);						
-			
+			startRunTask();
 		}
 	}
 	void onStopPressed()
 	{		
 		coupledRun.endRun();
-
+		
 
 		// stop motor (only disarm if actually stopped)
 		if (stepperStop())
@@ -182,8 +181,6 @@ struct ThreadingPage : Page
 			}
 
 
-			motorTarget = coupledRun.getTargetMotorCount(spndlCount);
-			stepperMoveToTgt(motorTarget, cplSpeed, cplAccel);
 		}
 	}
 
@@ -197,6 +194,37 @@ struct ThreadingPage : Page
 
 		Page::exitPage();
 	}
+
+
+	void startRunTask()
+	{
+		// start the run task pinned to core 1
+		xTaskCreatePinnedToCore(
+			[](void* param) 
+			{
+				ThreadingPage* page = (ThreadingPage*)param;
+				const TickType_t xDelay = pdMS_TO_TICKS(10);
+				while (page->coupledRun.isRunning())
+				{
+					page->coupledRunTask();
+					vTaskDelay(xDelay);
+				}
+				vTaskDelete(NULL);
+			},
+			"CoupledRunTask",
+			2048,
+			(void*)this,
+			1,
+			NULL,
+			1); // core 1
+
+	}
+	void coupledRunTask()
+	{
+		motorTarget = coupledRun.getTargetMotorCount(spndlCount);
+		stepperMoveToTgt(motorTarget, cplSpeed, cplAccel);
+	}
+
 };
 ThreadingPage threadingPage;
 
