@@ -199,47 +199,59 @@ struct Page
 
 	virtual void drawLoop() = 0;
 
+
 	virtual void pageUpdate(uint16_t btns) 
 	{
-		if (btns != 0 && btns < 0x0100) // handle buttons 1-8 first
-		{
-			switch (btns)
+		if (btns != 0) 
+		{ 
+			// custom handling for any buttons - if handled, return immediately to avoid default handling
+			if (handleBtnPress(btns))
 			{
-			default:
-				setEV(-1);
-				break;
-
-			case 0x0001: // SK1
-				goToPage(0);
 				return;
-
-			case 0x0002: // SK2
-				setEV(1);
-				break;
-
-			case 0x0004: // SK3
-				setEV(2);
-				break;
-
-			case 0x0008: // SK4
-				setEV(3);
-				break;
-
-			case 0x0010: // SK4
-				setEV(4);
-				break;
-			case 0x0020: // SK5
-				setEV(5);
-				break;
-			case 0x0040: // SK6
-				setEV(6);
-				break;
-			case 0x0080: // SK7
-				setEV(7);
-				break;				
 			}
-			drawOnce();
-			return;
+
+		
+			// handle buttons 1-8 for selecting editable values
+			if (btns < 0x0100) 
+			{			
+				switch (btns)
+				{
+				default:
+					setEV(-1);
+					break;
+
+				case 0x0001: // SK1
+					goToPage(0);
+					return;
+
+				case 0x0002: // SK2
+					setEV(1);
+					break;
+
+				case 0x0004: // SK3
+					setEV(2);
+					break;
+
+				case 0x0008: // SK4
+					setEV(3);
+					break;
+
+				case 0x0010: // SK4
+					setEV(4);
+					break;
+				case 0x0020: // SK5
+					setEV(5);
+					break;
+				case 0x0040: // SK6
+					setEV(6);
+					break;
+				case 0x0080: // SK7
+					setEV(7);
+					break;				
+				}
+				drawOnce();
+				return;
+			}
 		}
 
 		if (evEditing != nullptr)
@@ -252,7 +264,10 @@ struct Page
 		setEV(-1);
 	}
 
-
+	virtual bool handleBtnPress(uint16_t btns)
+	{
+		return false;
+	}
 
 	virtual EditableValueInt* getEvAtField(int index)
 	{

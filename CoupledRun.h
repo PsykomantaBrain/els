@@ -52,15 +52,20 @@ public:
 struct CoupledRunF32
 {
 public:
-	int s0, sLast;
+	int s0;
+	int sLast;
 	int m0;
 
 	float K; // coupling ratio: motor steps per spindle encoder pulse
 
-	float eAvg = 0.999f;
+	float eAvg = 0.9999f;
 	float vAvg = 0.0f;
 
+	float accAvg = 0.0f;
+
 	bool running = false;
+
+	long microsLast = 0;
 
 	bool isRunning()
 	{
@@ -72,11 +77,12 @@ public:
 		s0 = spndlEnc;
 		sLast = spndlEnc;
 
-
 		m0 = motorCount;
 		K = pitch / (float)leadscrewPitchUM;
 
 		running = true;
+		microsLast = micros();
+
 		Serial.println((String)"CoupledRunF32 begin: K=" + K + " s0=" + s0 + " m0=" + m0);
 	}
 
@@ -94,21 +100,29 @@ public:
 		return motorSteps;
 	}
 
-	float updStepperSpeed(int spndlEnc, ulong dtMicros)
-	{
-		if (K == 0.0f || dtMicros == 0)
+	float updStepperSpeed(int spndlEnc, ulong micros)
+	{		
+		float dt = (float)(micros - microsLast) / 1000000.0f;
+		if (K == 0.0f || dt == 0.0f)
 			return 0.0f;
 
-		// velocity diff
-		float vel = (float)((spndlEnc - sLast) * K) / dtMicros;
-		sLast = spndlEnc;
+		// spindle diff
+		int dSpndl = spndlEnc - sLast;
 
+		// derive vel
+		float vel = (float)dSpndl / dt;		
+
+		microsLast = micros;
+		sLast = spndlEnc;
 
 		// EMA velocity diff
 		vAvg += eAvg * (vel - vAvg);
 
+		//Serial.println((String)"CoupledRunF32 velocity update: dSpndl=" + dSpndl + " dt=" + dt + " vel=" + vel + " vAvg=" + vAvg);
+
 		return vAvg;
 	}
+
 
 	void endRun()
 	{

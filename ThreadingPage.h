@@ -1,5 +1,7 @@
 #pragma once
 #include "CoupledRun.h"
+#include "PCNT_spindle.h"
+
 
 struct ThreadingPage : Page
 {
@@ -9,7 +11,7 @@ struct ThreadingPage : Page
 	PageValueInt pvPitch = PageValueInt(4, evPitch.value);
 
 
-	int cplAccel = 10000;
+	int cplAccel = 100000;
 	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 7, 250);
 	PageValueInt pvCplacc = PageValueInt(4, evCplacc.value);
 
@@ -44,6 +46,10 @@ struct ThreadingPage : Page
 
 	int motorTarget = 0;
 	PageValueInt pvMot = PageValueInt(4, &motorTarget);
+
+	int runVel = 0; // for display only, calculated in the run task based on the spindle speed and pitch
+	PageValueInt pvVel = PageValueInt(4, &runVel);
+
 
 	CoupledRunF32 coupledRun;
 
@@ -81,7 +87,7 @@ struct ThreadingPage : Page
 
 		
 		lcd.setCursor(0, 3);
-		lcd.print(" ...  Spn  ...  TGT ");
+		lcd.print(" ...  Spn  Vel  TGT ");
 	}
 	void drawLoop() override
 	{
@@ -92,10 +98,11 @@ struct ThreadingPage : Page
 		pvCplspd.drawAt(lcd, C_FIELD3, 1);
 
 
+		pvMpos.drawAt(lcd, C_FIELD0, 3);
 		pvSpndl.drawAt(lcd, C_FIELD1, 2);
+		pvVel.drawAt(lcd, C_FIELD2, 2);
 		pvMot.drawAt(lcd, C_FIELD3, 2);
 
-		pvMpos.drawAt(lcd, C_FIELD0, 3);
 
 	}
 
@@ -105,6 +112,7 @@ struct ThreadingPage : Page
 		
 		btnRun.arm();
 		motorTarget = stepper->getCurrentPosition();
+		runVel = 0;
 	}
 
 
@@ -196,8 +204,12 @@ struct ThreadingPage : Page
 	}
 
 
+	float vel, acc;
 	void startRunTask()
 	{
+		vel = 0.0f;
+		acc = 0.0f;
+
 		// start the run task pinned to core 1
 		xTaskCreatePinnedToCore(
 			[](void* param) 
@@ -205,7 +217,7 @@ struct ThreadingPage : Page
 				ThreadingPage* page = (ThreadingPage*)param;
 				const TickType_t xDelay = pdMS_TO_TICKS(10);
 				while (page->coupledRun.isRunning())
-				{
+				{					
 					page->coupledRunTask();
 					vTaskDelay(xDelay);
 				}
@@ -219,12 +231,21 @@ struct ThreadingPage : Page
 			1); // core 1
 
 	}
+
 	void coupledRunTask()
 	{
-		motorTarget = coupledRun.getTargetMotorCount(spndlCount);
-		stepperMoveToTgt(motorTarget, cplSpeed, cplAccel);
+		int spndl = read_spindle(); // up to date spindle value
+
+		motorTarget = coupledRun.getTargetMotorCount(spndl);
+		
+		// measuring spindle velocity for the commanded move speed makes a HUGE difference in smoothness of the motion vs going to the target at a fixed speed.
+		// I tried deriving acceleration as well, but that made the motor lag behind quite a bit. With acc set high enough, it moves smoothly enough and there's no perceivable latency.
+		vel = coupledRun.updStepperSpeed(spndl, micros());
+		runVel = (int)vel; // update display value
+		
+
+		stepperMoveToTgt(motorTarget, vel, cplAccel);
 	}
 
 };
 ThreadingPage threadingPage;
-
