@@ -139,6 +139,8 @@ String LabelAct(String label, bool act)
 #include "ConfigPage.h"
 #include "ThreadingPage.h"
 #include "SpeedPage.h"
+#include "JogPage.h"
+
 // TO DO: add jog page (digital carriage handwheel mode - ie, coupled run to handwheel instead of spindle)
 
 
@@ -171,6 +173,9 @@ void goToPage(int iPage)
 		break;
 	case 3:
 		setPage(&spdPage);
+		break;
+	case 4:
+		setPage(&jogPage);
 		break;
 
 	}

@@ -98,6 +98,7 @@
     <ClInclude Include="ConfigPage.h" />
     <ClInclude Include="CoupledRun.h" />
     <ClInclude Include="FastAccelStepperCtrl.h" />
+    <ClInclude Include="JogPage.h" />
     <ClInclude Include="LCDCustomChars.h" />
     <ClInclude Include="LedcStepperCtrl.h" />
     <ClInclude Include="MainPage.h" />

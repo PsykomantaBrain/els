@@ -5,6 +5,8 @@
 #define PAGE_CONFIG 1
 #define PAGE_THREADING 2
 #define PAGE_SPEED 3
+#define PAGE_JOG 4
+
 
 
 struct MainPage : Page
@@ -28,7 +30,7 @@ struct MainPage : Page
 		lcd.print("HdWl"); pvHdWhl.drawAt(lcd, C_FIELD1, 2);
 
 		lcd.setCursor(0, 3);
-		lcd.print("      THR  SPD  ... ");
+		lcd.print("      THR  SPD  JOG ");
 	}
 
 	void drawLoop() override
@@ -65,6 +67,7 @@ struct MainPage : Page
 		if (btns & 0x0008)
 		{
 			// BTN4 pressed			
+			goToPage(PAGE_JOG);
 			return;
 		}
 

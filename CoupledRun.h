@@ -16,21 +16,21 @@ public:
 
 	int mRemain = 0; // for accumulating fractional steps
 
-	void beginRun(int spndlEnc, int motorCount, int pN, int pD)
+	void beginRun(int enc, int motorCount, int pN, int pD)
 	{
-		s0 = spndlEnc;
+		s0 = enc;
 		m0 = motorCount;
 
 		pitchN = pN * motorStepsPerRev;
 		pitchD = pD * leadscrewPitchUM * spindlePulsesPerRev;
 	}
 
-	int getTargetMotorCount(int spndlEnc)
+	int getTargetMotorCount(int enc)
 	{
 		if (pitchN == 0)
 			return m0;
 						
-		int sd = (spndlEnc - s0);
+		int sd = (enc - s0);
 		int motorSteps = m0 + (sd * pitchN / pitchD);
 		
 		// accumulate remainder (this is all int maths)
@@ -56,7 +56,7 @@ public:
 	int sLast;
 	int m0;
 
-	float K; // coupling ratio: motor steps per spindle encoder pulse
+	float K; // coupling ratio: motor steps per encoder pulse
 
 	float eAvg = 0.9999f;
 	float vAvg = 0.0f;
@@ -72,10 +72,10 @@ public:
 		return running;
 	}
 
-	void beginRun(int spndlEnc, int motorCount, float pitch)
+	void beginRun(int enc, int motorCount, float pitch)
 	{
-		s0 = spndlEnc;
-		sLast = spndlEnc;
+		s0 = enc;
+		sLast = enc;
 
 		m0 = motorCount;
 		K = pitch / (float)leadscrewPitchUM;
@@ -86,12 +86,12 @@ public:
 		Serial.println((String)"CoupledRunF32 begin: K=" + K + " s0=" + s0 + " m0=" + m0);
 	}
 
-	int getTargetMotorCount(int spndlEnc)
+	int getTargetMotorCount(int enc)
 	{
 		if (K == 0.0f)
 			return m0;
 
-		float sd = (spndlEnc - s0);
+		float sd = (enc - s0);
 		float sRevs = sd / (float)spindlePulsesPerRev;
 		float ldsRevs = sRevs * K;
 
@@ -100,25 +100,25 @@ public:
 		return motorSteps;
 	}
 
-	float updStepperSpeed(int spndlEnc, ulong micros)
+	float updStepperSpeed(int enc, ulong micros)
 	{		
 		float dt = (float)(micros - microsLast) / 1000000.0f;
 		if (K == 0.0f || dt == 0.0f)
 			return 0.0f;
 
 		// spindle diff
-		int dSpndl = spndlEnc - sLast;
+		int dSpndl = enc - sLast;
 
 		// derive vel
 		float vel = (float)dSpndl / dt;		
 
 		microsLast = micros;
-		sLast = spndlEnc;
+		sLast = enc;
 
 		// EMA velocity diff
 		vAvg += eAvg * (vel - vAvg);
 
-		//Serial.println((String)"CoupledRunF32 velocity update: dSpndl=" + dSpndl + " dt=" + dt + " vel=" + vel + " vAvg=" + vAvg);
+		//Serial.println((String)"CoupledRunF32 velocity update: enc=" + enc+ " dt=" + dt + " vel=" + vel + " vAvg=" + vAvg);
 
 		return vAvg;
 	}
