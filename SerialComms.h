@@ -82,6 +82,67 @@ void handleSerial()
 			int newPage = input.substring(5).toInt();
 			goToPage(newPage);
 		}
+		if (input.startsWith("/btn"))
+		{
+			char btn = input.charAt(5);
+
+			switch (btn)
+			{
+				case '1':
+					btnsRxState |= 0x0001;
+					break;
+				case '2':
+					btnsRxState |= 0x0002;
+					break;
+				case '3':
+					btnsRxState |= 0x0004;
+					break;
+				case '4':
+					btnsRxState |= 0x0008;
+					break;
+				case '5':
+					btnsRxState |= 0x0010;
+					break;
+				case '6':
+					btnsRxState |= 0x0020;
+					break;
+				case '7':
+					btnsRxState |= 0x0040;
+					break;
+				case '8':
+					btnsRxState |= 0x0080;
+					break;
+
+
+				case 'Z':
+				case 'z':
+				case '0':
+					btnsRxState |= 0x0100;
+					break;
+
+				case 'R':
+				case 'r':
+					btnsRxState |= 0x1000;
+					break;
+
+				case 'S':
+				case 's':
+				case ' ':
+					btnsRxState |= 0x2000;
+					break;
+
+
+				default:
+				btnsRxState = 0;
+				break;
+			}
+		}
+
+		if (input.startsWith("/hwl"))
+		{
+			int mov = input.substring(5).toInt();
+			mov_handwheel(mov);
+		}
 	}
 }
 

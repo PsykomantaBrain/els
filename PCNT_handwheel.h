@@ -107,3 +107,13 @@ static int32_t read_handwheel()
 
 	return count / 4;
 }
+
+static int32_t mov_handwheel(int mov)
+{
+	int count = 0;
+	ESP_ERROR_CHECK(pcnt_unit_get_count(pcnt_unit_hdwl, &count));
+	pcnt_accum_hdwl += count + (mov * 4);
+	pcnt_unit_clear_count(pcnt_unit_hdwl);
+
+	return pcnt_accum_hdwl / 4;
+}

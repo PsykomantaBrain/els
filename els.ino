@@ -73,7 +73,7 @@
 // config params -------------------------------
 // these need to get saved to eeprom and reloaded on startup 
 
-int btnsState = 0; // current button states bitmask
+int btnsRxState = 0; // button states sent over serial
 
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
@@ -120,7 +120,7 @@ PageValueInt pvMpos = PageValueInt(4, &stepperCurrentPos);
 
 PageValueInt pvHdWhl = PageValueInt(4, &hdwhlCount);
 PageValueInt pvSpndl = PageValueInt(4, &spndlCount);
-PageValueInt pvBtns = PageValueInt(4, &btnsState);
+
 
 Page* currentPage = nullptr;
 
@@ -289,6 +289,8 @@ void setup()
 // the loop function runs over and over again until power down or reset
 void loop() 
 {
+	btnsRxState = 0;
+
 	// Handle serial data if there is anything in the buffer. 
 	handleSerial();
 	
@@ -332,7 +334,7 @@ void loop()
 		if (digitalRead(BTN8) == LOW) skBtns |= 0x0080; // SK8
 	}
 
-	btnsState = skBtns; 
+	skBtns |= btnsRxState;
 	currentPage->pageUpdate(skBtns);
 
 	if (skBtns != 0)
