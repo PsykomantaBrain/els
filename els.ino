@@ -114,6 +114,8 @@ ArmingButton btnRun(BTNRUN, LEDRUN);
 void goToPage(int);
 
 #include "Page.h"
+Page* currentPage = nullptr;
+
 
 int stepperCurrentPos;
 PageValueInt pvMpos = PageValueInt(4, &stepperCurrentPos);
@@ -122,9 +124,23 @@ PageValueInt pvHdWhl = PageValueInt(4, &hdwhlCount);
 PageValueInt pvSpndl = PageValueInt(4, &spndlCount);
 
 
-Page* currentPage = nullptr;
+// leadscrew DRO 
+double leadscrewDatum; // zeroing datum for leadscrew readout
+PageValueDouble pvDatum = PageValueDouble(5, &leadscrewDatum);
+double leadscrewDRO; // calculated position of carriage from the stepper position and zeroing datum
+PageValueDouble pvDRO = PageValueDouble(5, &leadscrewDRO);
 
+void UpdateDRO(int btns)
+{
+	double stepLdAdv = leadscrewPitchUM * (1.0 / motorStepsPerRev);
 
+	if ((btns & 0x0100) != 0) // Zero button
+	{
+		leadscrewDatum = ((double)stepperCurrentPos * stepLdAdv) / 1000.0; // in mm
+	}
+
+	leadscrewDRO = ((double)stepperCurrentPos * stepLdAdv) / 1000.0 - leadscrewDatum; // in mm
+}
 
 
 
@@ -297,15 +313,10 @@ void loop()
 	// update global state variables (that need updating)
 	stepperCurrentPos = stepper->getCurrentPosition();
 	spndlCount = read_spindle();
-
 	hdwhlCount = read_handwheel();
-	
-	currentPage->drawLoop();
+		
 
 	// handle input
-	
-	
-
 	// grab button states here and pass
 	uint16_t skBtns = 0;
 
@@ -333,8 +344,11 @@ void loop()
 		if (digitalRead(BTN7) == LOW) skBtns |= 0x0040; // SK7
 		if (digitalRead(BTN8) == LOW) skBtns |= 0x0080; // SK8
 	}
-
 	skBtns |= btnsRxState;
+		
+	UpdateDRO(skBtns);
+	currentPage->drawLoop();
+
 	currentPage->pageUpdate(skBtns);
 
 	if (skBtns != 0)

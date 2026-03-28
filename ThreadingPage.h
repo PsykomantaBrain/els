@@ -7,16 +7,16 @@ struct ThreadingPage : Page
 {
 	
 	int pitchUm = 1000;	
-	EditableValueInt evPitch = EditableValueInt(&pitchUm, "PCH", 5, 25);
+	EditableValueInt evPitch = EditableValueInt(&pitchUm, "PCH", 25);
 	PageValueInt pvPitch = PageValueInt(4, evPitch.value);
 
 
 	int cplAccel = 100000;
-	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 7, 250);
+	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 250);
 	PageValueInt pvCplacc = PageValueInt(4, evCplacc.value);
 
 	int cplSpeed = 10000;
-	EditableValueInt evCplspd = EditableValueInt(&cplSpeed, "SPD", 7, 250);
+	EditableValueInt evCplspd = EditableValueInt(&cplSpeed, "SPD", 250);
 	PageValueInt pvCplspd = PageValueInt(4, evCplspd.value);
 
 	int motorDirection = 2; // 0=REV, 1 = STP, 2=FWD
@@ -27,7 +27,7 @@ struct ThreadingPage : Page
 	// this is relative to the 0 position where the run started (there's no closed loop position input here... yet)
 	// so it's more of a 'stop-after-this-much-travel' limit
 	int endStop = 0;
-	EditableValueInt evEndstop = EditableValueInt(&endStop, "END", 7, 10);
+	EditableValueInt evEndstop = EditableValueInt(&endStop, "END", 10);
 	PageValueInt pvEndstop = PageValueInt(4, evEndstop.value);
 
 	// later, a 'return to zero' function can be added here to jog back to the stored zero point automatically
@@ -98,7 +98,7 @@ struct ThreadingPage : Page
 		pvCplspd.drawAt(lcd, C_FIELD3, 1);
 
 
-		pvMpos.drawAt(lcd, C_FIELD0, 3);
+		pvDRO.drawAt(lcd, C_FIELD0, 3);
 		pvSpndl.drawAt(lcd, C_FIELD1, 2);
 		pvVel.drawAt(lcd, C_FIELD2, 2);
 		pvMot.drawAt(lcd, C_FIELD3, 2);

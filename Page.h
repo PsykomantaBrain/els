@@ -12,8 +12,7 @@
 struct EditableValueInt
 {
 	String caption;
-	int vIndex = -1;
-
+	
 	int* value = 0;
 	int step = 1;
 
@@ -21,10 +20,9 @@ struct EditableValueInt
 	
 	bool editing;
 
-	EditableValueInt(int* linkedValue, String cap, int vIndex, int step = 1)
+	EditableValueInt(int* linkedValue, String cap, int step = 1)
 	{
 		caption = cap;
-		this->vIndex = vIndex;
 
 		this->value = linkedValue;
 		this->v0 = *linkedValue;
@@ -116,6 +114,46 @@ public:
 
 };
 
+struct PageValueDouble
+{
+
+private:
+	char buffer[16];
+
+public:
+	uint8_t length;
+
+	volatile double* linkedValue = nullptr;
+
+	PageValueDouble(uint8_t l, volatile double* val)
+	{
+		length = l;
+		linkedValue = val;
+	}
+
+
+	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+	{
+		lcd.setCursor(col, row);
+		// draw value with as many trailing decimals as will fit in length
+		int intPart = (int)(*linkedValue);
+		int intPartLen = String(intPart).length();
+		int decimals = max(0, length - intPartLen - 1); // leave room for decimal point
+		snprintf(buffer, length + 1, "%*.*f", intPartLen + decimals + (decimals > 0 ? 1 : 0), decimals, *linkedValue);
+		lcd.print(buffer);
+	}
+
+	void drawAt(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row, int len)
+	{
+		lcd.setCursor(col, row);
+		// draw value with as many trailing decimals as will fit in length
+		int intPart = (int)(*linkedValue);
+		int intPartLen = String(intPart).length();
+		int decimals = max(0, len - intPartLen - 1); // leave room for decimal point
+		snprintf(buffer, len + 1, "%*.*f", intPartLen + decimals + (decimals > 0 ? 1 : 0), decimals, *linkedValue);
+		lcd.print(buffer);
+	}
+};
 
 struct PageValueStr
 {

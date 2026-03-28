@@ -8,9 +8,9 @@ struct SpdPage : Page
 	int cmdPPS = 0;
 	int cmdRPS = 0;
 	int cmdRPM = 0;
-	EditableValueInt evPPScmd = EditableValueInt(&cmdPPS, "PPS", 1, 10);
-	EditableValueInt evRPScmd = EditableValueInt(&cmdRPS, "RPS", 2, 1);
-	EditableValueInt evRPMcmd = EditableValueInt(&cmdRPM, "RPM", 3, 10);
+	EditableValueInt evPPScmd = EditableValueInt(&cmdPPS, "PPS", 10);
+	EditableValueInt evRPScmd = EditableValueInt(&cmdRPS, "RPS", 1);
+	EditableValueInt evRPMcmd = EditableValueInt(&cmdRPM, "RPM", 10);
 	PageValueInt pvPPSCmd = PageValueInt(4, evPPScmd.value);
 	PageValueInt pvRPSCmd = PageValueInt(4, evRPScmd.value);
 	PageValueInt pvRPMCmd = PageValueInt(4, evRPMcmd.value);

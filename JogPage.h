@@ -7,16 +7,21 @@ struct JogPage : Page
 {
 
 	int cplAccel = 100000;
-	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 7, 250);
+	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 250);
 	PageValueInt pvCplacc = PageValueInt(4, evCplacc.value);
 
-	int cplSpeed = 10000;
-	EditableValueInt evCplspd = EditableValueInt(&cplSpeed, "SPD", 7, 250);
+	int cplSpeed = 42000;
+	EditableValueInt evCplspd = EditableValueInt(&cplSpeed, "SPD", 250);
 	PageValueInt pvCplspd = PageValueInt(4, evCplspd.value);
 
-	int pitchUm = 2000;
-	EditableValueInt evPitch = EditableValueInt(&pitchUm, "PCH", 5, 25);
-	PageValueInt pvPitch = PageValueInt(4, evPitch.value);
+	int hwStep = 3200;
+	EditableValueInt evHwStp = EditableValueInt(&hwStep, "STP", 25);
+	PageValueInt pvHwStp = PageValueInt(4, evHwStp.value);
+
+	int hwMag = 1; // log value for step scaling (-1 = 0.1 0 = 1, 1 = 10)
+	double hwScale = 10.0; // display value for mag (eg, 0.1, 1, 10, etc)
+	EditableValueInt evHwMag = EditableValueInt(&hwMag, "MAG", 1);
+	PageValueDouble pvHwMag = PageValueDouble(4, &hwScale);
 
 	// later, a 'return to zero' function can be added here to jog back to the stored zero point automatically
 
@@ -45,12 +50,15 @@ struct JogPage : Page
 	{
 		switch (index)
 		{
+		
 		case 4:
-			return &evCplacc;
+			return &evHwMag;
 		case 5:
-			return &evPitch;
-		case 7:
+			return &evHwStp;
+		case 6:
 			return &evCplspd;
+		case 7:
+			return &evCplacc;
 
 		default:
 			return nullptr;
@@ -64,12 +72,12 @@ struct JogPage : Page
 		lcd.clear();
 
 		// l0
-		lcd.print(" ACC  pch  ...  SPD ");
+		lcd.print(" MAG  STP  SPD  ACC ");
 
-		evCplacc.drawCaption(lcd, C_FIELD0, 0);		
-		evPitch.drawCaption(lcd, C_FIELD1, 0);
-		// ...
-		evCplspd.drawCaption(lcd, C_FIELD3, 0);
+		evHwMag.drawCaption(lcd, C_FIELD0, 0);
+		evHwStp.drawCaption(lcd, C_FIELD1, 0);
+		evCplspd.drawCaption(lcd, C_FIELD2, 0);
+		evCplacc.drawCaption(lcd, C_FIELD3, 0);		
 
 
 
@@ -78,22 +86,23 @@ struct JogPage : Page
 		lcd.print("JOG");
 
 		lcd.setCursor(0, 3);
-		lcd.print(" ...  Hwl  Vel  TGT ");
+		lcd.print(" ...  ...  ...  ... ");
 	}
 	void drawLoop() override
 	{
 
-		pvCplacc.drawAt(lcd, C_FIELD0, 1);
-		pvPitch.drawAt(lcd, C_FIELD1, 1);
-		// ...
-		pvCplspd.drawAt(lcd, C_FIELD3, 1);
+		pvHwMag.drawAt(lcd, C_FIELD0, 1);
+		lcd.print("x");
+		pvHwStp.drawAt(lcd, C_FIELD1, 1);
+		pvCplspd.drawAt(lcd, C_FIELD2, 1);
+		pvCplacc.drawAt(lcd, C_FIELD3, 1);
 
 
-		pvHdWhl.drawAt(lcd, C_FIELD1, 2);
-		pvVel.drawAt(lcd, C_FIELD2, 2);
-		pvMot.drawAt(lcd, C_FIELD3, 2);
+		//pvHdWhl.drawAt(lcd, C_FIELD1, 2);
+		//pvVel.drawAt(lcd, C_FIELD2, 2);
+		//pvMot.drawAt(lcd, C_FIELD3, 2);
 
-		pvMpos.drawAt(lcd, C_FIELD0, 3);
+		pvDRO.drawAt(lcd, C_FIELD0, 3);
 
 	}
 
@@ -111,7 +120,7 @@ struct JogPage : Page
 	void onRunPressed()
 	{
 		// start coupled run with current settings
-		if (pitchUm != 0)
+		if (hwStep != 0)
 		{
 
 			// disarm run button
@@ -121,7 +130,7 @@ struct JogPage : Page
 			stepper->setSpeedInHz(cplSpeed);
 			stepper->setAcceleration(cplAccel);
 
-			coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)pitchUm);
+			coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)hwStep);
 
 			startRunTask();
 		}
@@ -157,16 +166,21 @@ struct JogPage : Page
 		// default behaviour for other buttons
 		Page::pageUpdate(btns);
 
+		if (evEditing == &evHwMag)
+		{
+			// convert log value to display value for mag
+			hwScale = powf(10.0f, (float)hwMag);
+		}
 
 
 		if (coupledRun.isRunning())
 		{
-			if (coupledRun.K != (float)pitchUm / (float)leadscrewPitchUM)
+			if (coupledRun.K != (float)(hwStep * hwScale) / (float)leadscrewPitchUM)
 			{
 				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)				
 				stepper->setSpeedInHz(cplSpeed);
 				stepper->setAcceleration(cplAccel);
-				coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)pitchUm);
+				coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)(hwStep * hwScale));
 			}
 		}
 	}

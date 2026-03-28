@@ -29,6 +29,8 @@ struct MainPage : Page
 		lcd.setCursor(0, 2);
 		lcd.print("HdWl"); pvHdWhl.drawAt(lcd, C_FIELD1, 2);
 
+		lcd.print("   X"); pvDRO.drawAt(lcd, C_FIELD3, 2);
+
 		lcd.setCursor(0, 3);
 		lcd.print("      THR  SPD  JOG ");
 	}
@@ -38,6 +40,8 @@ struct MainPage : Page
 		// show RPM value in its region
 		pvSpndl.drawAt(lcd, C_FIELD1, 1);
 		pvHdWhl.drawAt(lcd, C_FIELD1, 2);
+
+		pvDRO.drawAt(lcd, C_FIELD3, 2);
 
 		//pvBtns.drawAt(lcd, C_FIELD3, 2);
 
