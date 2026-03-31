@@ -3,6 +3,7 @@
 #include "PCNT_spindle.h"
 
 
+
 struct ThreadingPage : Page
 {
 	
@@ -52,6 +53,66 @@ struct ThreadingPage : Page
 
 
 	CoupledRunF32 coupledRun;
+
+
+	int runTriggerState = 0; // 'thread dial indicator' state. 0 = idle. 1 = waiting for spindle to move arming zone, 2 = waiting for threshold crossing to start. 3 = running
+	// negative states are the same but for running in reverse.
+	bool waitForRunStart()
+	{
+		// wait for spindle to reach the next index position (or a multiple of it, based on runQ0) before starting the run, to ensure consistent thread start points
+
+		// we don't actually have to store a new run start position each time. We can just wait for the spindle to reach a fixed index point for all runs.
+		// the only caveat is that the logic is different based on whether we're running in forward or reverse.
+
+		// to avoid false starts, this needs to be a two-state check. First we check if we are in the right side of the triggerable range (eg s < halfrev) 
+		// then we wait for the spindle to move into the other half (eg s >= halfrev) before we trigger the start. This way we avoid triggering if we start the run while we're already in the trigger zone.
+
+		if (runTriggerState == 0)
+			return false;
+
+		int spndl = read_spindle() % spindlePulsesPerRev;
+		switch (runTriggerState)
+		{
+		case 1:
+			if (spndl < spindlePulsesPerRev / 2)
+				runTriggerState = 2;
+			break;
+		case 2:
+			if (spndl >= spindlePulsesPerRev / 2)
+			{
+				runTriggerState = 3;
+				digitalWrite(LEDRUN, 0);
+				return true;
+			}
+			break;
+		case -1:
+			if (spndl >= spindlePulsesPerRev / 2)
+				runTriggerState = -2;
+			break;
+		case -2:
+			if (spndl < spindlePulsesPerRev / 2)
+			{
+				runTriggerState = -3;
+				digitalWrite(LEDRUN, 0);
+				return true;
+			}
+			break;
+		}
+
+		// for states |1| and |2|, blink the run LED to indicate waiting for the trigger 
+		if (runTriggerState == 1 || runTriggerState == -1)
+		{
+			digitalWrite(LEDRUN, (millis() / 250) % 2); // blink at 2Hz
+		}
+		if (runTriggerState == 2 || runTriggerState == -2)
+		{
+			digitalWrite(LEDRUN, (millis() / 125) % 2); // blink at 4Hz
+		}
+
+		return false;
+	}
+
+
 
 	EditableValueInt* getEvAtField(int index) override
 	{
@@ -127,15 +188,14 @@ struct ThreadingPage : Page
 			btnStop.arm();
 
 			stepper->setSpeedInHz(cplSpeed);
-			stepper->setAcceleration(cplAccel);
-			coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);						
+			stepper->setAcceleration(cplAccel);					
 			startRunTask();
 		}
 	}
 	void onStopPressed()
 	{		
 		coupledRun.endRun();
-		
+		runTriggerState = 0;
 
 		// stop motor (only disarm if actually stopped)
 		if (stepperStop())
@@ -194,6 +254,8 @@ struct ThreadingPage : Page
 
 	void exitPage() override
 	{
+		runTriggerState = 0;
+
 		coupledRun.endRun();
 		stepperStop();
 
@@ -210,12 +272,35 @@ struct ThreadingPage : Page
 		vel = 0.0f;
 		acc = 0.0f;
 
+		runTriggerState = motorDirection == 0 ? -1 : 1; // set initial trigger state based on direction (waiting for spindle to move into the opposite half of the index pulse)
+
 		// start the run task pinned to core 1
 		xTaskCreatePinnedToCore(
 			[](void* param) 
 			{
 				ThreadingPage* page = (ThreadingPage*)param;
 				const TickType_t xDelay = pdMS_TO_TICKS(10);
+
+				Serial.println("Coupled run task started... waiting for spindle indexing");
+				while (!page->waitForRunStart())
+				{
+					if (page->runTriggerState == 0) // if the run was stopped while waiting for the trigger, exit the task
+					{
+						Serial.println("Coupled run cancelled.");
+						digitalWrite(LEDRUN, 0); // stop blinking
+
+						vTaskDelete(NULL);
+						return;
+					}
+
+					vTaskDelay(xDelay);
+				}
+
+				digitalWrite(LEDRUN, 0); // stop blinking
+
+				page->coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)page->pitchUm);
+				Serial.println("Running.");
+
 				while (page->coupledRun.isRunning())
 				{					
 					page->coupledRunTask();

@@ -55,7 +55,7 @@ public:
 	int s0;
 	int sLast;
 	int m0;
-
+		
 	float K; // coupling ratio: motor steps per encoder pulse
 
 	float eAvg = 0.9999f;
