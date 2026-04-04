@@ -81,6 +81,8 @@ struct EditableValueInt
 		else
 			lcd.print(" " + caption + " ");
 	}
+
+	
 };
 
 

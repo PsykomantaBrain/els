@@ -7,14 +7,19 @@ static pcnt_unit_handle_t    pcnt_unit_spndl = nullptr;
 static pcnt_channel_handle_t pcnt_ch_0_spndl = nullptr;
 static pcnt_channel_handle_t pcnt_ch_1_spndl = nullptr;
 
-static constexpr int PCNT_LIMIT_SPNDL = 30000;
+// One revolution in raw quadrature counts. Set at runtime in setup_spindle_pcnt().
+// Hardware requires |limit| <= 32767, so max supported encoder is 8191 PPR.
+static int PCNT_LIMIT_SPNDL = 2400; // default for 600 PPR; overwritten at setup
 static volatile int32_t pcnt_accum_spndl = 0;
+
+// Task handle registered by the threading task before it blocks waiting for the
+// index pulse. Written by the task, read by the ISR. 32-bit writes are atomic on LX6.
+static volatile TaskHandle_t spndl_index_task_handle = nullptr;
 
 static bool IRAM_ATTR on_pcnt_watch_spndl(pcnt_unit_handle_t unit,
 	const pcnt_watch_event_data_t* edata,
 	void* user_ctx)
 {
-	// edata->watch_point_value is the value that triggered.
 	const int wp = edata->watch_point_value;
 
 	if (wp == +PCNT_LIMIT_SPNDL) {
@@ -25,11 +30,22 @@ static bool IRAM_ATTR on_pcnt_watch_spndl(pcnt_unit_handle_t unit,
 		pcnt_accum_spndl -= PCNT_LIMIT_SPNDL;
 		pcnt_unit_clear_count(unit);
 	}
-	return true; // yield if needed
+
+	// Overflow = one full revolution = index pulse. Notify any waiting task.
+	TaskHandle_t h = spndl_index_task_handle;
+	if (h != nullptr) {
+		BaseType_t hp = pdFALSE;
+		vTaskNotifyGiveFromISR(h, &hp);
+		portYIELD_FROM_ISR(hp);
+	}
+
+	return true;
 }
 
 static void setup_spindle_pcnt()
 {
+	// Set limit to exactly one revolution so the overflow ISR fires as the index pulse.
+	PCNT_LIMIT_SPNDL = spindlePulsesPerRev * 4;
 
 	// sub 32768 limits (avoid overflow complexity)
 	pcnt_unit_config_t ucfg = {
