@@ -17,7 +17,7 @@ struct SpdPage : Page
 	PageValueInt pvSetSpeed = PageValueInt(4, &motorPPSSet);
 
 	int motorDirection = 1; // 0=REV, 1 = STP, 2=FWD
-	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "REV STOP FWD" );
+	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, " REVSTOP FWD" );
 
 
 	// Conversion helpers — carriage moves leadscrewPitchUM (in micrometers) per motor revolution.
@@ -41,9 +41,9 @@ struct SpdPage : Page
 	{
 		switch (index)
 		{
-		case 1:
-			return &evMMScmd;
 		case 2:
+			return &evMMScmd;
+		case 3:
 			return &evRPMcmd;
 		default:
 			return nullptr;
@@ -67,9 +67,12 @@ struct SpdPage : Page
 		// thrd page
 		lcd.clear();
 		// l0
-		lcd.print(" DIR               ");
+		lcd.print(" DIR ");
 
 		// l1
+		lcd.setCursor(C_FIELD3, 0);
+		lcd.print(" VSET");
+		// 
 		// l2
 		
 
@@ -81,10 +84,10 @@ struct SpdPage : Page
 	{
 		pvDir.drawAt(lcd, C_FIELD0, 1);
 
-
-
 		motorPPSSet = stepperGetCurrentPulseRate();
-		pvSetSpeed.drawAt(lcd, C_FIELD3, 1);
+		pvSetSpeed.drawAt(lcd, C_FIELD3, 0);
+
+
 
 		pvMMSCmd.drawAt(lcd, C_FIELD2, 2);
 		pvRPMCmd.drawAt(lcd, C_FIELD3, 2);
@@ -141,7 +144,7 @@ struct SpdPage : Page
 		}
 
 
-		if (btns & 0x0020) // DIR btn - flip directions
+		if (btns & 0x0010) // DIR btn - flip directions
 		{
 			if (evEditing && !btnStop.IsArmed()) // not while running.
 			{
@@ -163,14 +166,14 @@ struct SpdPage : Page
 		}
 		else if (evEditing == &evRPMcmd)
 		{
-			cmdMMS = mmsFromRpm(evRPMcmd.getValue());
+			evMMScmd.setValue(mmsFromRpm(cmdRPM));
 		}
 
 
 
-		if (sign(cmdMMS) + 1 != motorDirection)
+		if (sign(cmdRPM) + 1 != motorDirection)
 		{
-			motorDirection = sign(cmdMMS) + 1;
+			motorDirection = sign(cmdRPM) + 1;
 		}
 		// while running, allow realtime speed changes
 		if (btnStop.IsArmed())
