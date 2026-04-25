@@ -56,9 +56,7 @@ struct ThreadingPage : Page
 
 			if (!btnStop.IsArmed()) // not while running. 
 			{
-				motorDirection = motorDirection == 0 ? 2 : 0; // toggle between REV and FWD
-				stepperDirection(motorDirection > 0); // set direction 
-
+				motorDirection = motorDirection == 0 ? 2 : 0; // toggle between REV and FWD			
 				delay(200); // debounce
 			}
 

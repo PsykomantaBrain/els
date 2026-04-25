@@ -44,8 +44,9 @@ bool stepperSetup(uint8_t resolution = 8)
 }
 
 void stepperDirection(bool dir)
-{
-	digitalWrite(MOTOR_PIN_DIR, dir ? HIGH : LOW);
+{		
+	// I think the stepper library should be handling this.
+	//digitalWrite(MOTOR_PIN_DIR, dir ? HIGH : LOW);
 }
 
 bool stepperStop()
@@ -56,10 +57,7 @@ bool stepperStop()
 
 // stepsPerSecond = 0 disables pulses  
 uint32_t stepperRunPPS(float stepsPerSecond)
-{
-	stepperDirection(stepsPerSecond >= 0.0f); // set direction based on sign of speed command
-	stepsPerSecond = fabsf(stepsPerSecond);
-
+{	
 
 	if (stepsPerSecond == 0.0f)
 	{
@@ -67,7 +65,7 @@ uint32_t stepperRunPPS(float stepsPerSecond)
 		return 0;
 	}
 
-	bool ok = stepper->setSpeedInHz((uint32_t)stepsPerSecond) == 0;
+	bool ok = stepper->setSpeedInHz((uint32_t)fabsf(stepsPerSecond)) == 0;
 	ok &= stepper->setAcceleration(motorMaxAccel) == 0;
 	if (!ok)
 	{
