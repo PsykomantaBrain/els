@@ -6,6 +6,7 @@
 #define PAGE_THREADING 2
 #define PAGE_SPEED 3
 #define PAGE_JOG 4
+#define PAGE_RETURN 5
 
 
 
@@ -22,14 +23,13 @@ struct MainPage : Page
 		lcd.clear();
 		lcd.setCursor(0, 0);
 		lcd.print(" ...  ...  ...  CFG ");
-
+				
 		lcd.setCursor(0, 1);
-		lcd.print("Spnd"); pvSpndl.drawAt(lcd, C_FIELD1, 1);
+		lcd.print("Spnd Hdwl");
 
-		lcd.setCursor(0, 2);
-		lcd.print("HdWl"); pvHdWhl.drawAt(lcd, C_FIELD1, 2);
 
-		lcd.print("   X"); pvDRO.drawAt(lcd, C_FIELD3, 2);
+		lcd.setCursor(C_FIELD2, 2);	lcd.print(" X\005:");
+		pvDRO.drawAt(lcd, C_FIELD0, 3);
 
 		lcd.setCursor(0, 3);
 		lcd.print("      THR  SPD  JOG ");
@@ -38,8 +38,8 @@ struct MainPage : Page
 	void drawLoop() override
 	{
 		// show RPM value in its region
-		pvSpndl.drawAt(lcd, C_FIELD1, 1);
-		pvHdWhl.drawAt(lcd, C_FIELD1, 2);
+		pvSpndl.drawAt(lcd, C_FIELD0, 0);
+		pvHdWhl.drawAt(lcd, C_FIELD1, 0);
 
 		pvDRO.drawAt(lcd, C_FIELD3, 2);
 

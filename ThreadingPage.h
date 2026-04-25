@@ -21,15 +21,20 @@ struct ThreadingPage : Page
 	PageValueInt pvCplspd = PageValueInt(4, evCplspd.value);
 
 	int motorDirection = 2; // 0=REV, 1 = STP, 2=FWD
-	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "L///STOPR<<<");
+	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, "L\006\006\006STOPR\007\007\007");
 
 
-	// location (motor position) of endstop (to automatically disengage the run)
-	// this is relative to the 0 position where the run started (there's no closed loop position input here... yet)
-	// so it's more of a 'stop-after-this-much-travel' limit
-	int endStop = 0;
-	EditableValueInt evEndstop = EditableValueInt(&endStop, "END", 10);
-	PageValueInt pvEndstop = PageValueInt(4, evEndstop.value);
+	// Endstop: maximum carriage travel from the run-start position, in micrometers.
+	// When the threading run reaches this distance, it stops automatically and the
+	// ReturnPage modal takes over for backlash-compensated return-to-zero.
+	int endStop = 0;                    // microns; positive distance from m0
+	double endStopMM = 0.0;             // mm, derived for display
+	EditableValueInt evEndstop = EditableValueInt(&endStop, "END", 100); // step 100 �m = 0.1 mm
+	PageValueDouble pvEndstop = PageValueDouble(4, &endStopMM);
+
+	// flag set by the run task (core 1) when the endstop is reached;
+	// pageUpdate (core 0) consumes it and switches to ReturnPage.
+	volatile bool endstopReached = false;
 
 	// later, a 'return to zero' function can be added here to jog back to the stored zero point automatically	
 
@@ -45,18 +50,20 @@ struct ThreadingPage : Page
 
 
 
-	EditableValueInt* getEvAtField(int index) override
+	EditableValue* getEvAtField(int index) override
 	{
 		switch (index)
 		{
+		case 3:
+			return &evEndstop;
 		case 4:
 			return &evPitch;
-		case 5: 
+		case 5:
 			//is DIR button. No editable value, but toggle direction on press (while not running)
 
-			if (!btnStop.IsArmed()) // not while running. 
+			if (!btnStop.IsArmed()) // not while running.
 			{
-				motorDirection = motorDirection == 0 ? 2 : 0; // toggle between REV and FWD			
+				motorDirection = motorDirection == 0 ? 2 : 0; // toggle between REV and FWD
 				delay(200); // debounce
 			}
 
@@ -65,7 +72,7 @@ struct ThreadingPage : Page
 			return &evCplspd;
 		case 7:
 			return &evCplacc;
-			
+
 		default:
 			return nullptr;
 		}
@@ -79,17 +86,19 @@ struct ThreadingPage : Page
 
 		// l0
 		lcd.print(" PCH  DIR  SPD  ACC ");
-		
+
 		evPitch.drawCaption(lcd, C_FIELD0, 0);
-		// DIR btn on field 1
+		// DIR btn on 6
 		evCplspd.drawCaption(lcd, C_FIELD2, 0);
 		evCplacc.drawCaption(lcd, C_FIELD3, 0);
 
-		
 
-		
 		lcd.setCursor(0, 3);
-		lcd.print(" ...  Spn  Vel  MoT ");
+
+		// END field on field 3 (SK3 selects it)
+		lcd.print("      ...  ...  end ");
+		evEndstop.drawCaption(lcd, C_FIELD3, 3);
+
 	}
 	void drawLoop() override
 	{
@@ -100,11 +109,16 @@ struct ThreadingPage : Page
 		pvCplacc.drawAt(lcd, C_FIELD3, 1);
 
 
+		// keep endStopMM in sync with endStop microns for the display
+		endStopMM = (double)endStop / 1000.0;
+		pvEndstop.drawAt(lcd, C_FIELD3, 2);
+
+
 		pvDRO.drawAt(lcd, C_FIELD0, 3);
-		
-		pvSpndl.drawAt(lcd, C_FIELD1, 2);
-		pvVel.drawAt(lcd, C_FIELD2, 2);
-		pvMot.drawAt(lcd, C_FIELD3, 2);
+
+		//pvSpndl.drawAt(lcd, C_FIELD1, 2);
+		//pvVel.drawAt(lcd, C_FIELD2, 2);
+		//pvMot.drawAt(lcd, C_FIELD3, 2);
 
 
 	}
@@ -112,10 +126,11 @@ struct ThreadingPage : Page
 	void enterPage() override
 	{
 		Page::enterPage();
-		
+
 		btnRun.arm();
 		motorTarget = stepper->getCurrentPosition();
 		runVel = 0;
+		endstopReached = false;
 	}
 
 
@@ -153,24 +168,41 @@ struct ThreadingPage : Page
 		{
 			onStopPressed();
 			return;
-		}		
+		}
 		if (btns & 0x1000) // RUN
 		{
 			onRunPressed();
 			return;
 		}
 
-		
+		// endstop reached during a coupled run — hand off to ReturnPage
+		if (endstopReached)
+		{
+			endstopReached = false;
+			stepperStop();
+			btnStop.disarm();
+			btnRun.disarm();
+
+			// snapshot the run-start motor position so ReturnPage can return there with backlash comp
+			returnPage.m0 = coupledRun.m0;
+			returnPage.endPos = stepper->getCurrentPosition();
+			returnPage.returnSpeed = cplSpeed;
+
+			goToPage(PAGE_RETURN);
+			return;
+		}
+
+
 		// default behaviour for other buttons
 		Page::pageUpdate(btns);
 
-		
-		
+
+
 		if (coupledRun.isRunning())
 		{
 			if (coupledRun.K != (float)pitchUm / (float)leadscrewPitchUM)
 			{
-				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)				
+				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)
 				stepper->setSpeedInHz(cplSpeed);
 				stepper->setAcceleration(cplAccel);
 				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);
@@ -266,12 +298,29 @@ struct ThreadingPage : Page
 		int spndl = read_spindle(); // up to date spindle value
 
 		motorTarget = coupledRun.getTargetMotorCount(spndl);
-		
+
+		// endstop check: stop the run when the carriage has actually travelled |endStop|
+		// microns from m0. Use the stepper's real position (not motorTarget) — motorTarget
+		// is the projected position from the spindle and runs ahead of the motor by however
+		// much the motor lags under acceleration limits, which would make the run stop far
+		// short of the configured distance.
+		if (endStop > 0 && leadscrewPitchUM > 0)
+		{
+			int actualSteps = abs(stepper->getCurrentPosition() - coupledRun.m0);
+			int endStopSteps = (int)((double)endStop * (double)motorStepsPerRev / (double)leadscrewPitchUM);
+			if (actualSteps >= endStopSteps)
+			{
+				endstopReached = true;
+				coupledRun.endRun();   // breaks the run-task loop
+				return;                // pageUpdate (core 0) handles the rest
+			}
+		}
+
 		// measuring spindle velocity for the commanded move speed makes a HUGE difference in smoothness of the motion vs going to the target at a fixed speed.
 		// I tried deriving acceleration as well, but that made the motor lag behind quite a bit. With acc set high enough, it moves smoothly enough and there's no perceivable latency.
 		vel = coupledRun.updStepperSpeed(spndl, micros());
 		runVel = (int)vel; // update display value
-		
+
 
 		stepperMoveToTgt(motorTarget, vel, cplAccel);
 	}

@@ -9,6 +9,7 @@ void saveConfigToEEPROM()
 	bWritten += EEPROM.writeInt(4, spindlePulsesPerRev);
 	bWritten += EEPROM.writeInt(8, leadscrewPitchUM);
 	bWritten += EEPROM.writeInt(12, motorMaxAccel);
+	bWritten += EEPROM.writeInt(16, backlashCompUM);
 	EEPROM.commit();
 
 
@@ -22,10 +23,11 @@ void saveConfigToEEPROM()
 }
 void loadConfigFromEEPROM()
 {
-	motorStepsPerRev = EEPROM.readInt(0);	
+	motorStepsPerRev = EEPROM.readInt(0);
 	spindlePulsesPerRev = EEPROM.readInt(4);
 	leadscrewPitchUM = EEPROM.readInt(8);
 	motorMaxAccel = EEPROM.readInt(12);
+	backlashCompUM = EEPROM.readInt(16);
 
 	Serial.println((String)"Config Loaded from EEPROM");
 }
@@ -36,26 +38,30 @@ struct CfgPage : Page
 	EditableValueInt evSpV = EditableValueInt(&spindlePulsesPerRev, "SpV", 5);
 	EditableValueInt evLsP = EditableValueInt(&leadscrewPitchUM, "LsP", 1);
 	EditableValueInt evAcc = EditableValueInt(&motorMaxAccel, "Acc", 100);
+	EditableValueInt evBla = EditableValueInt(&backlashCompUM, "BLS", 10);
 
 
 	PageValueInt pvMoV = PageValueInt(4, evMoV.value);
 	PageValueInt pvSpV = PageValueInt(4, evSpV.value);
 	PageValueInt pvLsP = PageValueInt(4, evLsP.value);
 	PageValueInt pvAcc = PageValueInt(4, evAcc.value);
+	PageValueInt pvBla = PageValueInt(4, evBla.value);
 
 
-	EditableValueInt* getEvAtField(int index) override
-	{		
+	EditableValue* getEvAtField(int index) override
+	{
 		switch (index)
 		{
 		case 1:
-			return &evMoV;		
+			return &evMoV;
 		case 2:
 			return &evSpV;
 		case 3:
 			return &evLsP;
 		case 5:
 			return &evAcc;
+		case 6:
+			return &evBla;
 		default:
 			return nullptr;
 		}
@@ -63,19 +69,21 @@ struct CfgPage : Page
 
 	void drawOnce() override
 	{
-		lcd.clear();		
+		lcd.clear();
 		lcd.setCursor(C_FIELD0, 0);
 		lcd.print("STR");
 
 		evAcc.drawCaption(lcd, C_FIELD1, 0);
+		evBla.drawCaption(lcd, C_FIELD2, 0);
 
 		evMoV.drawCaption(lcd, C_FIELD1, 3);
 		evSpV.drawCaption(lcd, C_FIELD2, 3);
-		evLsP.drawCaption(lcd, C_FIELD3, 3);		
+		evLsP.drawCaption(lcd, C_FIELD3, 3);
 	}
 	void drawLoop() override
 	{
 		pvAcc.drawAt(lcd, C_FIELD1, 1);
+		pvBla.drawAt(lcd, C_FIELD2, 1);
 
 
 		pvMoV.drawAt(lcd, C_FIELD1, 2);

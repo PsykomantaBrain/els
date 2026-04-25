@@ -9,28 +9,47 @@
 #define C_FIELD3 15//6789
 
 
-struct EditableValueInt
+struct EditableValue
 {
 	String caption;
-	
+	bool editing = false;
+	int hdwl0 = 0;
+
+	EditableValue(String cap) : caption(cap) {}
+	virtual ~EditableValue() {}
+
+	virtual void beginEdit(int hdwl) = 0;
+	virtual void updateEdit(int hdwl) = 0;
+	virtual void commitEdit() = 0;
+	virtual void cancelEdit() = 0;
+	virtual void negate() = 0;
+
+	void drawCaption(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+	{
+		lcd.setCursor(col, row);
+		if (editing)
+			lcd.print("\003" + caption + "\002");
+		else
+			lcd.print(" " + caption + " ");
+	}
+};
+
+
+struct EditableValueInt : EditableValue
+{
 	int* value = 0;
 	int step = 1;
-
-	int v0, hdwl0;
-	
-	bool editing;
+	int v0;
 
 	EditableValueInt(int* linkedValue, String cap, int step = 1)
+		: EditableValue(cap)
 	{
-		caption = cap;
-
 		this->value = linkedValue;
 		this->v0 = *linkedValue;
-
 		this->step = step;
 	}
 
-	void beginEdit(int hdwl)
+	void beginEdit(int hdwl) override
 	{
 		if (editing)
 			return;
@@ -40,7 +59,7 @@ struct EditableValueInt
 		editing = true;
 	}
 
-	void updateEdit(int hdwl)
+	void updateEdit(int hdwl) override
 	{
 		if (!editing)
 			return;
@@ -48,19 +67,24 @@ struct EditableValueInt
 		*value = v0 + ((hdwl - hdwl0) * step);
 	}
 
-	void commitEdit()
+	void commitEdit() override
 	{
 		if (!editing)
 			return;
 		editing = false;
 	}
-	void cancelEdit()
+	void cancelEdit() override
 	{
 		if (!editing)
 			return;
 
 		*value = v0;
 		editing = false;
+	}
+
+	void negate() override
+	{
+		*value = -*value;
 	}
 
 	void setValue(int v)
@@ -71,18 +95,69 @@ struct EditableValueInt
 	{
 		return *value;
 	}
+};
 
 
-	void drawCaption(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
+struct EditableValueDouble : EditableValue
+{
+	double* value = 0;
+	double step = 1.0;
+	double v0;
+
+	EditableValueDouble(double* linkedValue, String cap, double step = 1.0)
+		: EditableValue(cap)
 	{
-		lcd.setCursor(col, row);
-		if (editing)
-			lcd.print("\003" + caption + "\002");
-		else
-			lcd.print(" " + caption + " ");
+		this->value = linkedValue;
+		this->v0 = *linkedValue;
+		this->step = step;
 	}
 
-	
+	void beginEdit(int hdwl) override
+	{
+		if (editing)
+			return;
+
+		hdwl0 = hdwl;
+		v0 = *value;
+		editing = true;
+	}
+
+	void updateEdit(int hdwl) override
+	{
+		if (!editing)
+			return;
+
+		*value = v0 + ((double)(hdwl - hdwl0) * step);
+	}
+
+	void commitEdit() override
+	{
+		if (!editing)
+			return;
+		editing = false;
+	}
+	void cancelEdit() override
+	{
+		if (!editing)
+			return;
+
+		*value = v0;
+		editing = false;
+	}
+
+	void negate() override
+	{
+		*value = -*value;
+	}
+
+	void setValue(double v)
+	{
+		*value = v;
+	}
+	double getValue()
+	{
+		return *value;
+	}
 };
 
 
@@ -309,13 +384,13 @@ struct Page
 		return false;
 	}
 
-	virtual EditableValueInt* getEvAtField(int index)
+	virtual EditableValue* getEvAtField(int index)
 	{
 		return nullptr;
 	}
 
 
-	EditableValueInt* evEditing = nullptr;
+	EditableValue* evEditing = nullptr;
 	void setEV(int sel)
 	{
 		if (evEditing != nullptr)

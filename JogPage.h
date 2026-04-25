@@ -46,7 +46,7 @@ struct JogPage : Page
 
 	CoupledRunF32 coupledRun;
 
-	EditableValueInt* getEvAtField(int index) override
+	EditableValue* getEvAtField(int index) override
 	{
 		switch (index)
 		{
