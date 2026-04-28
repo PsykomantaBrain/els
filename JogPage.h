@@ -81,12 +81,9 @@ struct JogPage : Page
 
 
 
+		lcd.setCursor(C_FIELD0, 2);	lcd.print("\010\010");
+				
 
-		lcd.setCursor(0, 2);
-		lcd.print("JOG");
-
-		lcd.setCursor(0, 3);
-		lcd.print(" ...  ...  ...  ... ");
 	}
 	void drawLoop() override
 	{

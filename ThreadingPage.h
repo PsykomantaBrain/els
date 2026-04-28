@@ -93,10 +93,12 @@ struct ThreadingPage : Page
 		evCplacc.drawCaption(lcd, C_FIELD3, 0);
 
 
+		lcd.setCursor(C_FIELD0, 2);	lcd.print("\010\010");
+
 		lcd.setCursor(0, 3);
 
 		// END field on field 3 (SK3 selects it)
-		lcd.print("      ...  ...  end ");
+		lcd.print("                end ");
 		evEndstop.drawCaption(lcd, C_FIELD3, 3);
 
 	}
@@ -186,8 +188,7 @@ struct ThreadingPage : Page
 			// snapshot the run-start motor position so ReturnPage can return there with backlash comp
 			returnPage.m0 = coupledRun.m0;
 			returnPage.endPos = stepper->getCurrentPosition();
-			returnPage.returnSpeed = cplSpeed;
-
+			
 			goToPage(PAGE_RETURN);
 			return;
 		}
@@ -249,7 +250,7 @@ struct ThreadingPage : Page
 					{
 						spndl_index_task_handle = nullptr;
 						Serial.println("Coupled run cancelled.");
-						digitalWrite(LEDRUN, 0);
+						//digitalWrite(LEDRUN, 0);
 						vTaskDelete(NULL);
 						return;
 					}

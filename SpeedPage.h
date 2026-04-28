@@ -7,7 +7,7 @@ struct SpdPage : Page
 
 	double cmdMMS = 0.0;
 	int cmdRPM = 0;
-	EditableValueDouble evMMScmd = EditableValueDouble(&cmdMMS, "\005/s", 0.1);
+	EditableValueDouble evMMScmd = EditableValueDouble(&cmdMMS, "\005/S", 0.1);
 	EditableValueInt evRPMcmd = EditableValueInt(&cmdRPM, "RPM", 10);
 	PageValueDouble pvMMSCmd = PageValueDouble(4, &cmdMMS);
 	PageValueInt pvRPMCmd = PageValueInt(4, evRPMcmd.value);
@@ -17,7 +17,7 @@ struct SpdPage : Page
 	PageValueInt pvSetSpeed = PageValueInt(4, &motorPPSSet);
 
 	int motorDirection = 1; // 0=REV, 1 = STP, 2=FWD
-	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, " REVSTOP FWD" );
+	PageValueEnum pvDir = PageValueEnum(4, &motorDirection, " REV <-> FWD");
 
 
 	// Conversion helpers — carriage moves leadscrewPitchUM (in micrometers) per motor revolution.
@@ -70,11 +70,12 @@ struct SpdPage : Page
 		lcd.print(" DIR ");
 
 		// l1
-		lcd.setCursor(C_FIELD3, 0);
-		lcd.print(" VSET");
+		lcd.setCursor(C_FIELD3, 1);
+		lcd.print("VSET");
 		// 
 		// l2
-		
+
+		lcd.setCursor(C_FIELD0, 2);	lcd.print("\010\010");
 
 		// l3
 		evMMScmd.drawCaption(lcd, C_FIELD2, 3);

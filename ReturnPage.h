@@ -15,7 +15,8 @@ struct ReturnPage : Page
 	// inputs populated by the threading page before goToPage(PAGE_RETURN)
 	int m0 = 0;             // run-start motor position (target for the return)
 	int endPos = 0;         // motor position when the endstop was reached
-	int returnSpeed = 5000; // steps/sec for the return move
+	int returnSpeed = 10000; // steps/sec for the return move
+	int returnAcc   = 10000; // steps/sec² for the return move
 
 	enum State : uint8_t
 	{
@@ -40,11 +41,14 @@ struct ReturnPage : Page
 		int travel = endPos - m0;
 		cutDirSign = (travel > 0) ? +1 : (travel < 0) ? -1 : +1; // default to +1 if zero
 
-		// overshoot opposite to cut by backlashCompUM (microns -> motor steps)
+		// overshoot carriage return move by backlashCompUM 
+		// homing then approaches m0 from the same direction as the cut, to take up the backlash.
+		// baclashCompUM needs to be at least as large as the actual mechanical backlash in the leadscrew/nut to be effective.
+
 		int backlashSteps = 0;
 		if (leadscrewPitchUM > 0)
 			backlashSteps = (int)((double)backlashCompUM * (double)motorStepsPerRev / (double)leadscrewPitchUM);
-		overshootPos = m0 - cutDirSign * backlashSteps;
+		overshootPos = m0 - backlashSteps * cutDirSign;
 
 		// safety: keep operator buttons disarmed while in the modal
 		btnRun.disarm();
@@ -56,15 +60,15 @@ struct ReturnPage : Page
 	{
 		lcd.clear();
 		lcd.setCursor(0, 0);
-		lcd.print(" END STOP REACHED   ");
+		//lcd.print(" END STOP REACHED   ");
 
 		switch (state)
 		{
 		case ST_PROMPT:
-			lcd.setCursor(0, 1);
+			lcd.setCursor(0, 0);
 			lcd.print(" RETRACT CROSS SLIDE");
-			lcd.setCursor(0, 2);
-			lcd.print(" PRESS ZERO TO HOME ");
+			lcd.setCursor(0, 1);
+			lcd.print("[ZERO]: Carriage Return");
 			break;
 		case ST_MOVING_OVERSHOOT:
 			lcd.setCursor(0, 1);
@@ -145,7 +149,7 @@ struct ReturnPage : Page
 	void startOvershoot()
 	{
 		stepper->setSpeedInHz((uint32_t)abs(returnSpeed));
-		stepper->setAcceleration(motorMaxAccel > 0 ? motorMaxAccel : 5000);
+		stepper->setAcceleration(min(returnAcc, motorMaxAccel));
 		stepper->moveTo(overshootPos);
 		state = ST_MOVING_OVERSHOOT;
 		drawOnce();
@@ -154,7 +158,7 @@ struct ReturnPage : Page
 	void startHome()
 	{
 		stepper->setSpeedInHz((uint32_t)abs(returnSpeed));
-		stepper->setAcceleration(motorMaxAccel > 0 ? motorMaxAccel : 5000);
+		stepper->setAcceleration(min(returnAcc, motorMaxAccel));
 		stepper->moveTo(m0);
 		state = ST_MOVING_HOME;
 		drawOnce();

@@ -85,6 +85,28 @@ byte cc7[8] = {
 	B00011,
 	B00011,
 };
+// cc8: single small m
+byte cc8[8] = {
+	B00000,
+	B00000,
+	B00000,
+	B00000,
+	B11011,
+	B10101,
+	B10101,
+	B00000,
+};
+// cc9: single small micron
+byte cc9[8] = {
+	B00000,
+	B00000,
+	B00000,
+	B00000,
+	B01010,
+	B01010,
+	B01101,
+	B00000,
+};
 
 void addLCDCustomChars(LiquidCrystal_I2C& lcd)
 {
@@ -96,10 +118,13 @@ void addLCDCustomChars(LiquidCrystal_I2C& lcd)
 	lcd.createChar(5, cc5);
 	lcd.createChar(6, cc6);
 	lcd.createChar(7, cc7);
+	lcd.createChar(8, cc8);
+	lcd.createChar(9, cc9);
+
 
 }
 
 void testLCDCustomChars(LiquidCrystal_I2C& lcd)
 {
-	lcd.print(" \001\002\003\004\005\006\007 ");
+	lcd.print("\001\002\003\004\005\006\007    ");
 }

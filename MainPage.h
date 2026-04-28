@@ -22,26 +22,23 @@ struct MainPage : Page
 	{
 		lcd.clear();
 		lcd.setCursor(0, 0);
-		lcd.print(" ...  ...  ...  CFG ");
+		lcd.print(" THR  SPD  JOG  CFG ");
 				
-		lcd.setCursor(0, 1);
-		lcd.print("Spnd Hdwl");
 
 
-		lcd.setCursor(C_FIELD2, 2);	lcd.print(" X\005:");
-		pvDRO.drawAt(lcd, C_FIELD0, 3);
-
-		lcd.setCursor(0, 3);
-		lcd.print("      THR  SPD  JOG ");
+		lcd.setCursor(C_FIELD0, 2);	lcd.print("\010\010");
+		//lcd.setCursor(C_FIELD2, 2);	lcd.print("Spnd Hdwl");
+		
+		
 	}
 
 	void drawLoop() override
 	{
-		// show RPM value in its region
-		pvSpndl.drawAt(lcd, C_FIELD0, 0);
-		pvHdWhl.drawAt(lcd, C_FIELD1, 0);
+		pvDRO.drawAt(lcd, C_FIELD0, 3);
 
-		pvDRO.drawAt(lcd, C_FIELD3, 2);
+		// show RPM value in its region ?
+		//pvSpndl.drawAt(lcd, C_FIELD2, 3);
+		//pvHdWhl.drawAt(lcd, C_FIELD3, 3);
 
 		//pvBtns.drawAt(lcd, C_FIELD3, 2);
 
@@ -59,19 +56,16 @@ struct MainPage : Page
 		if (btns & 0x0002)
 		{
 			// BTN2 pressed			
-			goToPage(PAGE_THREADING);
 			return;
 		}
 		if (btns & 0x0004)
 		{
-			// BTN3 pressed			
-			goToPage(PAGE_SPEED);
-			return;
+			// BTN3 pressed		
+			return;	
 		}
 		if (btns & 0x0008)
 		{
 			// BTN4 pressed			
-			goToPage(PAGE_JOG);
 			return;
 		}
 
@@ -79,15 +73,19 @@ struct MainPage : Page
 		if (btns & 0x0010)
 		{
 			// BTN5 pressed			
+			goToPage(PAGE_THREADING);
+			return;
 		}
 		if (btns & 0x0020)
 		{
 			// BTN6 pressed			
-			return;
+			goToPage(PAGE_SPEED);
+			return;			
 		}
 		if (btns & 0x0040)
 		{
 			// BTN7 pressed		
+			goToPage(PAGE_JOG);
 			return;	
 		}
 		if (btns & 0x0080)
