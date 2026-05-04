@@ -78,7 +78,7 @@ int btnsRxState = 0; // button states sent over serial
 int motorStepsPerRev = 400;    //  steps per revolution for the stepper motor
 int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
 int leadscrewPitchUM = 2000;      // lead screw pitch in �m/rev
-int motorMaxAccel = 1000;      // max acceleration for the stepper motor in steps/s�
+int motorMaxAccel = 4200;      // max acceleration for the stepper motor in steps/s�
 int backlashCompUM = 0;       // backlash compensation in micrometers (added to the target position when changing direction, to compensate for mechanical backlash in the leadscrew and halfnut)
 
 //#include "LedcStepperCtrl.h"
@@ -150,8 +150,9 @@ String LabelAct(String label, bool act)
 }
 
 
-
 #include "MainPage.h"
+#include "MiniJog.h"
+
 #include "ConfigPage.h"
 #include "ReturnPage.h"     // ReturnPage must be declared before ThreadingPage so threading can hand off to it
 #include "ThreadingPage.h"

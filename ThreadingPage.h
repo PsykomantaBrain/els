@@ -12,11 +12,11 @@ struct ThreadingPage : Page
 	PageValueInt pvPitch = PageValueInt(4, evPitch.value);
 
 
-	int cplAccel = 100000;
+	int cplAccel = 420000;
 	EditableValueInt evCplacc = EditableValueInt(&cplAccel, "ACC", 250);
 	PageValueInt pvCplacc = PageValueInt(4, evCplacc.value);
 
-	int cplSpeed = 10000;
+	int cplSpeed = 42000;
 	EditableValueInt evCplspd = EditableValueInt(&cplSpeed, "SPD", 250);
 	PageValueInt pvCplspd = PageValueInt(4, evCplspd.value);
 
@@ -48,12 +48,29 @@ struct ThreadingPage : Page
 	CoupledRunF32 coupledRun;
 
 
+	void enterPage() override
+	{
+		Page::enterPage();
+
+		btnRun.arm();
+		motorTarget = stepper->getCurrentPosition();
+		runVel = 0;
+		endstopReached = false;
+
+		miniJog.layout(C_FIELD2, 2, 3);
+	}
 
 
 	EditableValue* getEvAtField(int index) override
 	{
 		switch (index)
 		{
+		case 2:
+			miniJog.cycleMode();		
+
+			if (miniJog.Mode == 0)
+				btnRun.arm(); // rearm if minijog cycles back to off.
+			return nullptr;
 		case 3:
 			return &evEndstop;
 		case 4:
@@ -101,6 +118,9 @@ struct ThreadingPage : Page
 		lcd.print("                end ");
 		evEndstop.drawCaption(lcd, C_FIELD3, 3);
 
+
+		miniJog.drawonce();
+
 	}
 	void drawLoop() override
 	{
@@ -122,26 +142,25 @@ struct ThreadingPage : Page
 		//pvVel.drawAt(lcd, C_FIELD2, 2);
 		//pvMot.drawAt(lcd, C_FIELD3, 2);
 
-
+		miniJog.drawloop();
 	}
 
-	void enterPage() override
-	{
-		Page::enterPage();
-
-		btnRun.arm();
-		motorTarget = stepper->getCurrentPosition();
-		runVel = 0;
-		endstopReached = false;
-	}
 
 
 
 	void onRunPressed()
 	{
+		if (miniJog.coupledRun.running) // this shouldn't happen, but just in case.
+		{
+			miniJog.setMode(0);			
+			btnRun.arm();
+			return;
+		}
+
 		// start coupled run with current settings
 		if (evPitch.getValue() != 0)
-		{
+		{			
+
 			// disarm run button
 			btnRun.disarm();
 			btnStop.arm();
@@ -153,6 +172,10 @@ struct ThreadingPage : Page
 	}
 	void onStopPressed()
 	{		
+		if (miniJog.coupledRun.running)
+			miniJog.setMode(0);
+
+
 		coupledRun.endRun();
 
 		// stop motor (only disarm if actually stopped)

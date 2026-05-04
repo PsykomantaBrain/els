@@ -96,7 +96,7 @@ byte cc8[8] = {
 	B10101,
 	B00000,
 };
-// cc9: single small micron
+// cc9: single small micron µ
 byte cc9[8] = {
 	B00000,
 	B00000,
@@ -105,7 +105,7 @@ byte cc9[8] = {
 	B01010,
 	B01010,
 	B01101,
-	B00000,
+	B01000,
 };
 
 void addLCDCustomChars(LiquidCrystal_I2C& lcd)

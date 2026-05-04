@@ -15,8 +15,8 @@ struct ReturnPage : Page
 	// inputs populated by the threading page before goToPage(PAGE_RETURN)
 	int m0 = 0;             // run-start motor position (target for the return)
 	int endPos = 0;         // motor position when the endstop was reached
-	int returnSpeed = 10000; // steps/sec for the return move
-	int returnAcc   = 10000; // steps/sec² for the return move
+	int returnSpeed = 42000; // steps/sec for the return move
+	int returnAcc   = 42000; // steps/sec² for the return move
 
 	enum State : uint8_t
 	{
