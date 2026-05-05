@@ -256,12 +256,14 @@ struct ThreadingPage : Page
 
 		if (coupledRun.isRunning())
 		{
-			if (coupledRun.K != (float)pitchUm / (float)leadscrewPitchUM)
+			if (fabsf(coupledRun.K) != (float)pitchUm / (float)leadscrewPitchUM)
 			{
 				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)
 				stepper->setSpeedInHz(cplSpeed);
 				stepper->setAcceleration(cplAccel);
-				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm, spindlePulsesPerRev);
+
+				float sPitch = fabsf((float)pitchUm) * (motorDirection == 0 ? -1 : 1);
+				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), sPitch, spindlePulsesPerRev);
 			}
 
 
@@ -332,8 +334,19 @@ struct ThreadingPage : Page
 				spndl_index_task_handle = nullptr;
 				digitalWrite(LEDRUN, 0);
 
-				page->coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)page->pitchUm, spindlePulsesPerRev);
-				Serial.println("Running.");
+				// negate pitch for left-handed threading
+				float sPitch = (float)page->pitchUm;
+				if (page->motorDirection == 0) // REV
+				{
+					sPitch = -fabsf(sPitch);
+					Serial.println("Running [LH]");
+				}
+				else
+				{
+					Serial.println("Running [RH]");				
+				}
+
+				page->coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), sPitch, spindlePulsesPerRev);
 
 				const TickType_t xDelay = pdMS_TO_TICKS(10);
 				while (page->coupledRun.isRunning())
@@ -381,7 +394,7 @@ struct ThreadingPage : Page
 		runVel = (int)vel; // update display value
 
 
-		stepperMoveToTgt(motorTarget, vel, cplAccel);
+		stepperMoveToTgt(motorTarget, (int)fabsf(vel), cplAccel);
 	}
 
 };
