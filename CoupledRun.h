@@ -13,16 +13,18 @@ public:
 
 	int pitchN;
 	int pitchD;
+	int encoderPulsesPerRev;
 
 	int mRemain = 0; // for accumulating fractional steps
 
-	void beginRun(int enc, int motorCount, int pN, int pD)
+	void beginRun(int enc, int motorCount, int pN, int pD, int encPPR)
 	{
 		s0 = enc;
 		m0 = motorCount;
 
+		encoderPulsesPerRev = encPPR;
 		pitchN = pN * motorStepsPerRev;
-		pitchD = pD * leadscrewPitchUM * spindlePulsesPerRev;
+		pitchD = pD * leadscrewPitchUM * encoderPulsesPerRev;
 	}
 
 	int getTargetMotorCount(int enc)
@@ -56,6 +58,8 @@ public:
 	int sLast;
 	int m0;
 		
+	float encoderPulsesPerRev; // spindle encoder pulses per revolution
+
 	float K; // coupling ratio: motor steps per encoder pulse
 
 	float eAvg = 0.9999f;
@@ -72,13 +76,14 @@ public:
 		return running;
 	}
 
-	void beginRun(int enc, int motorCount, float pitch)
+	void beginRun(int enc, int motorCount, float pitch, int encoderPPRev)
 	{
 		s0 = enc;
 		sLast = enc;
 
 		m0 = motorCount;
 		K = pitch / (float)leadscrewPitchUM;
+		encoderPulsesPerRev = (float)encoderPPRev;
 
 		running = true;
 		microsLast = micros();
@@ -92,7 +97,7 @@ public:
 			return m0;
 
 		float sd = (enc - s0);
-		float sRevs = sd / (float)spindlePulsesPerRev;
+		float sRevs = sd / encoderPulsesPerRev;
 		float ldsRevs = sRevs * K;
 
 		int motorSteps = m0 + (int)(ldsRevs * motorStepsPerRev);

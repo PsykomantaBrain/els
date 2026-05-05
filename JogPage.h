@@ -127,7 +127,7 @@ struct JogPage : Page
 			stepper->setSpeedInHz(cplSpeed);
 			stepper->setAcceleration(cplAccel);
 
-			coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)hwStep);
+			coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)hwStep, hdwlPulsesPerRevolution);
 
 			startRunTask();
 		}
@@ -177,7 +177,7 @@ struct JogPage : Page
 				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)				
 				stepper->setSpeedInHz(cplSpeed);
 				stepper->setAcceleration(cplAccel);
-				coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)(hwStep * hwScale));
+				coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), (float)(hwStep * hwScale), hdwlPulsesPerRevolution);
 			}
 		}
 	}

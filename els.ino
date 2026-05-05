@@ -80,6 +80,7 @@ int spindlePulsesPerRev = 600; // pulses per revolution for the spindle encoder
 int leadscrewPitchUM = 2000;      // lead screw pitch in �m/rev
 int motorMaxAccel = 4200;      // max acceleration for the stepper motor in steps/s�
 int backlashCompUM = 0;       // backlash compensation in micrometers (added to the target position when changing direction, to compensate for mechanical backlash in the leadscrew and halfnut)
+int hdwlPulsesPerRevolution = 100; // pulses per revolution for the handwheel encoder (for using a handwheel for jogging instead of the spindle position)
 
 //#include "LedcStepperCtrl.h"
 #include "FastAccelStepperCtrl.h"

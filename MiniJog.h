@@ -62,13 +62,13 @@ public:
 				step = 0.0f;
 			break;
 			case 1:
-				step = 100.0f;
+				step = 10000.0f;
 				break;
 			case 2:
-				step = 10.0f;
+				step = 1000.0f;
 			break;
 			case 3:
-				step = 1.0f;
+				step = 100.0f;
 			break;
 			}
 
@@ -79,7 +79,7 @@ public:
 
 				stepper->setSpeedInHz(maxSpeed);
 				stepper->setAcceleration(maxAccel);
-				coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), step * leadscrewPitchUM);
+				coupledRun.beginRun(hdwhlCount, stepper->getCurrentPosition(), step, hdwlPulsesPerRevolution);
 
 				if (Mode == 0)
 				{

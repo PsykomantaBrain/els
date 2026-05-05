@@ -229,7 +229,7 @@ struct ThreadingPage : Page
 				// restart with new pitch (keeping current position as m0, so pitch change affects speed only, instead of causing the motor to jump)
 				stepper->setSpeedInHz(cplSpeed);
 				stepper->setAcceleration(cplAccel);
-				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm);
+				coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)pitchUm, spindlePulsesPerRev);
 			}
 
 
@@ -297,7 +297,7 @@ struct ThreadingPage : Page
 				spndl_index_task_handle = nullptr;
 				digitalWrite(LEDRUN, 0);
 
-				page->coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)page->pitchUm);
+				page->coupledRun.beginRun(spndlCount, stepper->getCurrentPosition(), (float)page->pitchUm, spindlePulsesPerRev);
 				Serial.println("Running.");
 
 				const TickType_t xDelay = pdMS_TO_TICKS(10);
