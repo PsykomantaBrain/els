@@ -23,6 +23,7 @@ struct EditableValue
 	virtual void commitEdit() = 0;
 	virtual void cancelEdit() = 0;
 	virtual void negate() = 0;
+	virtual void zeroValue() = 0;
 
 	void drawCaption(LiquidCrystal_I2C& lcd, uint8_t col, uint8_t row)
 	{
@@ -86,6 +87,10 @@ struct EditableValueInt : EditableValue
 	{
 		*value = -*value;
 	}
+	void zeroValue() override
+	{
+		*value = 0;
+	}
 
 	void setValue(int v)
 	{
@@ -148,6 +153,10 @@ struct EditableValueDouble : EditableValue
 	void negate() override
 	{
 		*value = -*value;
+	}
+	void zeroValue() override
+	{
+		*value = 0.0;
 	}
 
 	void setValue(double v)

@@ -10,6 +10,7 @@ void saveConfigToEEPROM()
 	bWritten += EEPROM.writeInt(8, leadscrewPitchUM);
 	bWritten += EEPROM.writeInt(12, motorMaxAccel);
 	bWritten += EEPROM.writeInt(16, backlashCompUM);
+	bWritten += EEPROM.writeInt(20, hdwlPulsesPerRevolution);
 	EEPROM.commit();
 
 
@@ -28,6 +29,7 @@ void loadConfigFromEEPROM()
 	leadscrewPitchUM = EEPROM.readInt(8);
 	motorMaxAccel = EEPROM.readInt(12);
 	backlashCompUM = EEPROM.readInt(16);
+	hdwlPulsesPerRevolution = EEPROM.readInt(20);
 
 	Serial.println((String)"Config Loaded from EEPROM");
 }
@@ -38,7 +40,9 @@ struct CfgPage : Page
 	EditableValueInt evSpV = EditableValueInt(&spindlePulsesPerRev, "SpV", 5);
 	EditableValueInt evLsP = EditableValueInt(&leadscrewPitchUM, "LsP", 1);
 	EditableValueInt evAcc = EditableValueInt(&motorMaxAccel, "Acc", 100);
-	EditableValueInt evBla = EditableValueInt(&backlashCompUM, "BLS", 10);
+	EditableValueInt evBla = EditableValueInt(&backlashCompUM, "BLS", 1);
+	EditableValueInt evHwV = EditableValueInt(&hdwlPulsesPerRevolution, "HwV", 1);
+
 
 
 	PageValueInt pvMoV = PageValueInt(4, evMoV.value);
@@ -46,6 +50,7 @@ struct CfgPage : Page
 	PageValueInt pvLsP = PageValueInt(4, evLsP.value);
 	PageValueInt pvAcc = PageValueInt(4, evAcc.value);
 	PageValueInt pvBla = PageValueInt(4, evBla.value);
+	PageValueInt pvHwV = PageValueInt(4, evHwV.value);
 
 
 	EditableValue* getEvAtField(int index) override
@@ -59,7 +64,7 @@ struct CfgPage : Page
 		case 3:
 			return &evLsP;
 		case 5:
-			return &evAcc;
+			return &evHwV;
 		case 6:
 			return &evBla;
 		default:
@@ -73,7 +78,8 @@ struct CfgPage : Page
 		lcd.setCursor(C_FIELD0, 0);
 		lcd.print("STR");
 
-		evAcc.drawCaption(lcd, C_FIELD1, 0);
+		//evAcc.drawCaption(lcd, C_FIELD1, 0);
+		evHwV.drawCaption(lcd, C_FIELD1, 0);
 		evBla.drawCaption(lcd, C_FIELD2, 0);
 
 		evMoV.drawCaption(lcd, C_FIELD1, 3);
@@ -82,7 +88,8 @@ struct CfgPage : Page
 	}
 	void drawLoop() override
 	{
-		pvAcc.drawAt(lcd, C_FIELD1, 1);
+		//pvAcc.drawAt(lcd, C_FIELD1, 1);
+		pvHwV.drawAt(lcd, C_FIELD1, 1);
 		pvBla.drawAt(lcd, C_FIELD2, 1);
 
 

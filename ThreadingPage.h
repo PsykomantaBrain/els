@@ -61,15 +61,38 @@ struct ThreadingPage : Page
 	}
 
 
+
+	bool StopMiniJogIfEnabled()
+	{
+		if (miniJog.Mode != 0 || miniJog.coupledRun.isRunning())
+		{
+			miniJog.setMode(0);
+			return true;
+		}
+		return false;
+	}
+
 	EditableValue* getEvAtField(int index) override
 	{
+		if (index != 2)
+		{
+			// if we're trying to edit any field other than pitch, make sure minijog is off so we don't have conflicting controls
+			if (StopMiniJogIfEnabled())
+			{				
+				btnRun.arm(); // rearm if minijog was controlling the run
+			}
+		}
+
 		switch (index)
 		{
 		case 2:
-			miniJog.cycleMode();		
+			if (!coupledRun.running && spndl_index_task_handle == nullptr)
+			{
+				miniJog.cycleMode();		
 
-			if (miniJog.Mode == 0)
-				btnRun.arm(); // rearm if minijog cycles back to off.
+				if (miniJog.Mode == 0)
+					btnRun.arm(); // rearm if minijog cycles back to off.
+			}
 			return nullptr;
 		case 3:
 			return &evEndstop;
@@ -147,13 +170,12 @@ struct ThreadingPage : Page
 
 
 
-
 	void onRunPressed()
 	{
-		if (miniJog.coupledRun.running) // this shouldn't happen, but just in case.
+		if (StopMiniJogIfEnabled())
 		{
-			miniJog.setMode(0);			
-			btnRun.arm();
+			btnRun.arm(); // rearm if minijog was controlling the run, but don't start a new run below
+			miniJog.drawonce();
 			return;
 		}
 
@@ -200,6 +222,16 @@ struct ThreadingPage : Page
 			return;
 		}
 
+		if (btns & 0x0100) // ZERO
+		{
+			if (evEditing == &evEndstop)
+			{
+				evEditing->commitEdit();
+				evEditing->zeroValue();
+				evEditing->beginEdit(hdwhlCount);
+			}
+		}
+
 		// endstop reached during a coupled run — hand off to ReturnPage
 		if (endstopReached)
 		{
@@ -238,6 +270,8 @@ struct ThreadingPage : Page
 
 	void exitPage() override
 	{
+		StopMiniJogIfEnabled();
+
 		coupledRun.endRun();
 		stepperStop();
 
@@ -246,7 +280,6 @@ struct ThreadingPage : Page
 
 		Page::exitPage();
 	}
-
 
 	float vel, acc;
 	void startRunTask()
@@ -279,9 +312,10 @@ struct ThreadingPage : Page
 					}
 
 					digitalWrite(LEDRUN, (millis() / 250) % 2); // 2 Hz blink while waiting
+					page->StopMiniJogIfEnabled(); // make sure minijog is off while this is going
 
 					if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)) > 0)
-					{
+					{						
 						// Stop may have raced with the index pulse
 						if (!btnStop.IsArmed())
 						{
@@ -293,6 +327,7 @@ struct ThreadingPage : Page
 						triggered = true;
 					}
 				}
+
 
 				spndl_index_task_handle = nullptr;
 				digitalWrite(LEDRUN, 0);
